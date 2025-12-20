@@ -7,7 +7,7 @@ import time
 # 1. 頁面基本設定
 st.set_page_config(page_title="教育閱讀專區", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 樣式 (已調整試題視窗高度) ---
+# --- 🎨 核心 CSS 樣式 (微調字體大小與視窗配置) ---
 st.markdown("""
     <style>
     .scroll-box { 
@@ -19,8 +19,8 @@ st.markdown("""
         background-color: #1e1e1e; 
         color: #f0f0f0; 
         margin-bottom: 20px; 
-        line-height: 1.6;
-        font-size: 1.1rem;
+        line-height: 1.5;
+        font-size: 0.95rem; /* 字體縮小，增加可視內容範圍 */
     }
     .word-count-badge { background-color: #008080; color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
     .timer-display { font-size: 2rem; font-weight: bold; color: #ff4b4b; text-align: center; border: 2px solid #ff4b4b; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
@@ -167,9 +167,12 @@ with tab3:
             if model:
                 with st.spinner("教授命題中..."):
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
+                    # 強制 AI 直接輸出題目，不含廢話
                     q_prompt = f"""
                     請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。
                     主題為：『{target_topic}』。
+                    
+                    【⚠️ 重要指令】：直接開始輸出試題內容，嚴禁包含「好的」、「謹遵規範」、「為您命製」等任何開場白或問候語。
                     
                     【命題格式規範】：
                     1. 以簡練專業的語言描述一個具體的校園行政困境、政策執行挑戰或教學現況，其中考題包含問題核心內涵、政策分析或理念價值、具體的行政領導作為、推動策略或解決方案(總字數約150字）。
@@ -178,7 +181,6 @@ with tab3:
                     q = model.generate_content(q_prompt).text
                     st.session_state.current_q = q
         
-        # 顯示區已加大
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
 
     with col_r:
