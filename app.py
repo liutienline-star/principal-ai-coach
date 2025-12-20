@@ -167,7 +167,7 @@ with tab3:
         ans_input = st.text_area("在此輸入您的擬答...", height=350, key="ans_box")
         st.markdown(f'<span class="word-count-badge">📝 字數：{len(ans_input)}</span>', unsafe_allow_html=True)
         
-        if st.button("⚖️ 提交教授評審團"):
+        if st.button("⚖️ 提交審閱"):
             if model and ans_input:
                 with st.spinner("資深教授閱卷中..."):
                     grading_prompt = f"""
