@@ -7,10 +7,21 @@ import time
 # 1. 頁面基本設定
 st.set_page_config(page_title="教育閱讀專區", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 樣式 ---
+# --- 🎨 核心 CSS 樣式 (已調整試題視窗高度) ---
 st.markdown("""
     <style>
-    .scroll-box { height: 260px; overflow-y: auto; border: 2px solid #D4AF37; padding: 20px; border-radius: 10px; background-color: #1e1e1e; color: #f0f0f0; margin-bottom: 20px; }
+    .scroll-box { 
+        height: 500px; 
+        overflow-y: auto; 
+        border: 2px solid #D4AF37; 
+        padding: 25px; 
+        border-radius: 12px; 
+        background-color: #1e1e1e; 
+        color: #f0f0f0; 
+        margin-bottom: 20px; 
+        line-height: 1.6;
+        font-size: 1.1rem;
+    }
     .word-count-badge { background-color: #008080; color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
     .timer-display { font-size: 2rem; font-weight: bold; color: #ff4b4b; text-align: center; border: 2px solid #ff4b4b; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
     .stButton>button { width: 100%; border-radius: 5px; height: 3em; }
@@ -132,7 +143,7 @@ with tab2:
             del st.session_state.last_note
             st.rerun()
 
-# --- Tab 3: 限時實戰模擬 (優化評分視角：適中、精準、考量時間) ---
+# --- Tab 3: 限時實戰模擬 ---
 with tab3:
     st.header("⚖️ 實戰模擬")
     col_l, col_r = st.columns([1, 1.2], gap="large")
@@ -156,7 +167,6 @@ with tab3:
             if model:
                 with st.spinner("教授命題中..."):
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                    # 第 29 期風格：簡練題幹
                     q_prompt = f"""
                     請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。
                     主題為：『{target_topic}』。
@@ -167,6 +177,8 @@ with tab3:
                     """
                     q = model.generate_content(q_prompt).text
                     st.session_state.current_q = q
+        
+        # 顯示區已加大
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
 
     with col_r:
@@ -177,7 +189,6 @@ with tab3:
         if st.button("⚖️ 提交審閱"):
             if model and ans_input:
                 with st.spinner("召集人統整評分中..."):
-                    # 優化評分邏輯：考量 37 分鐘限時實務
                     grading_prompt = f"""
                     你現在是「國中校長甄試閱卷召集人」。考量考生在 37 分鐘內需完成審題、佈局與作答，請以「高效精準」與「結構領導」為核心進行適中評分。
                     
