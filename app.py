@@ -21,7 +21,7 @@ st.markdown("""
 if "password_correct" not in st.session_state:
     st.title("🛡️ 小閱讀、大心情")
     pwd = st.text_input("🔑 請輸入入陣密碼：", type="password")
-    if st.button("確認入陣"):
+    if st.button("進來聊聊"):
         if pwd == st.secrets["app_password"]:
             st.session_state["password_correct"] = True
             st.rerun()
