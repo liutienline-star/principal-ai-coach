@@ -63,7 +63,7 @@ with tab1:
     links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
              ("🏫 教育局", "https://www.tyc.edu.tw/"),
              ("📖 國教院", "https://www.naer.edu.tw/"),
-             ("🌟 教評月刊", "https://http://www.ater.org.tw/commentmonth.html")]
+             ("🌟 教評月刊", "http://www.ater.org.tw/commentmonth.html")]
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url)
 
