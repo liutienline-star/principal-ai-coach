@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 # 1. 頁面基本設定
-st.set_page_config(page_title="18銅人陣：114實戰校準版", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="教育閱讀專區", layout="wide", page_icon="🏫")
 
 # --- 🎨 核心 CSS 樣式 (保持不變) ---
 st.markdown("""
@@ -19,7 +19,7 @@ st.markdown("""
 
 # --- 🔐 密碼保護 ---
 if "password_correct" not in st.session_state:
-    st.title("🛡️ 18 銅人陣：校長甄試實戰系統")
+    st.title("🛡️ 小閱讀、大心情")
     pwd = st.text_input("🔑 請輸入入陣密碼：", type="password")
     if st.button("確認入陣"):
         if pwd == st.secrets["app_password"]:
