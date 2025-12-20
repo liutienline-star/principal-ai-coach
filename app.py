@@ -5,38 +5,110 @@ import pandas as pd
 import time
 
 # 1. 頁面基本設定
-st.set_page_config(page_title="教育閱讀專區", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="教育領航者閱讀專區", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 樣式 (微調字體大小與視窗配置) ---
+# --- 🎨 進階美化 CSS ---
 st.markdown("""
     <style>
-    .scroll-box { 
-        height: 500px; 
-        overflow-y: auto; 
-        border: 2px solid #D4AF37; 
-        padding: 25px; 
-        border-radius: 12px; 
-        background-color: #1e1e1e; 
-        color: #f0f0f0; 
-        margin-bottom: 20px; 
-        line-height: 1.6;
-        font-size: 1.1rem; /* 字體調大，提升閱讀舒適度 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
+    
+    /* 全域字體設定 */
+    html, body, [class*="css"] {
+        font-family: 'Noto Sans TC', sans-serif;
     }
-    .word-count-badge { background-color: #008080; color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
-    .timer-display { font-size: 2rem; font-weight: bold; color: #ff4b4b; text-align: center; border: 2px solid #ff4b4b; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
-    .stButton>button { width: 100%; border-radius: 5px; height: 3em; }
+
+    /* 主背景與卡片 */
+    .stApp {
+        background-color: #0e1117;
+    }
+    
+    /* 核心試題視窗優化 */
+    .scroll-box { 
+        height: 520px; 
+        overflow-y: auto; 
+        border: 1px solid rgba(212, 175, 55, 0.3); 
+        padding: 30px; 
+        border-radius: 15px; 
+        background: linear-gradient(145deg, #1e1e1e, #252525);
+        color: #e0e0e0; 
+        margin-bottom: 20px; 
+        line-height: 1.8;
+        font-size: 1.1rem;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    /* 頂部標題美化 */
+    .main-header {
+        background: linear-gradient(90deg, #D4AF37, #Faf0af);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* 按鈕美化 */
+    .stButton>button {
+        width: 100%;
+        border-radius: 8px;
+        height: 3.5em;
+        background-color: #262730;
+        color: #D4AF37;
+        border: 1px solid #D4AF37;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    .stButton>button:hover {
+        background-color: #D4AF37;
+        color: #1e1e1e;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+    }
+
+    /* 計時器樣式 */
+    .timer-display { 
+        font-size: 2.2rem; 
+        font-weight: 700; 
+        color: #ff4b4b; 
+        text-align: center; 
+        background: rgba(255, 75, 75, 0.1);
+        border: 1px solid #ff4b4b; 
+        padding: 15px; 
+        border-radius: 12px; 
+        margin-bottom: 20px;
+        box-shadow: 0 0 10px rgba(255, 75, 75, 0.2);
+    }
+
+    /* 標籤 Badge */
+    .word-count-badge { 
+        background: linear-gradient(45deg, #008080, #00a0a0); 
+        color: white; 
+        padding: 8px 18px; 
+        border-radius: 50px; 
+        font-size: 0.9rem; 
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    /* Tab 字體加大 */
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 🔐 密碼保護 ---
 if "password_correct" not in st.session_state:
-    st.title("🛡️ 小閱讀、大心情")
-    pwd = st.text_input("🔑 請輸入入陣密碼：", type="password")
-    if st.button("進來聊聊"):
-        if pwd == st.secrets["app_password"]:
-            st.session_state["password_correct"] = True
-            st.rerun()
-        else: st.error("密碼錯誤")
+    st.markdown('<h1 class="main-header">🛡️ 教育領航者研究室</h1>', unsafe_allow_html=True)
+    col_p1, col_p2, col_p3 = st.columns([1,2,1])
+    with col_p2:
+        pwd = st.text_input("🔑 請輸入行政通關密碼：", type="password")
+        if st.button("啟動系統"):
+            if pwd == st.secrets["app_password"]:
+                st.session_state["password_correct"] = True
+                st.rerun()
+            else: st.error("密碼驗證失敗，請重新輸入。")
     st.stop()
 
 # --- 2. 核心 AI 初始化 ---
@@ -64,27 +136,30 @@ THEME_POOL = {
     "❤️ SEL 與學生輔導": "114-118年社會情緒學習計畫、學生心理健康韌性、正向管教、中輟預防。"
 }
 
-# --- 4. 功能分頁 ---
-tab1, tab2, tab3 = st.tabs(["📰 1. 文章閱讀區", "📚 2. 專題筆記區", "✍️ 3. 模擬練習區"])
+# --- 4. 標題區 ---
+st.markdown('<h1 class="main-header">🏫 教育領航者專題研究室</h1>', unsafe_allow_html=True)
+st.markdown("*專為教育甄試設計的深度閱讀與模擬系統*")
+
+# --- 5. 功能分頁 ---
+tab1, tab2, tab3 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍️ 實戰模擬"])
 
 # --- Tab 1: 文章閱讀與轉化 ---
 with tab1:
-    st.header("📰 文章閱讀與轉化")
-    st.markdown("##### 📍 重要必讀資訊來源")
+    st.markdown("### 📍 權威資訊導引")
     c = st.columns(4)
-    links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
-             ("🏫 教育局", "https://www.tyc.edu.tw/"),
-             ("📖 國教院", "https://www.naer.edu.tw/"),
-             ("🌟 教評月刊", "http://www.ater.org.tw/commentmonth.html")]
+    links = [("🏛️ 教育部新聞", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
+             ("🏫 桃園教育局", "https://www.tyc.edu.tw/"),
+             ("📖 國家教育研究院", "https://www.naer.edu.tw/"),
+             ("🌟 臺灣教育評論", "http://www.ater.org.tw/commentmonth.html")]
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url)
 
     st.markdown("---")
-    news_clip = st.text_area("在此貼上新聞內容，AI 將為您進行深度導讀與考點轉化：", height=150)
+    news_clip = st.text_area("🔍 請貼上欲分析的教育新聞或政策文本：", height=200, placeholder="將文字貼於此處...")
     
-    if st.button("🎯 重點摘錄與導讀"):
+    if st.button("🎯 開始深度考點轉化"):
         if news_clip and model:
-            with st.spinner("正在進行專業教育分析與導讀..."):
+            with st.spinner("正在以閱卷教授視角解析文本..."):
                 reading_prompt = f"""
                 你現在是「教育政策高級分析師」。請針對這段新聞，提供一份專門為「校長甄試考生」準備的深層導讀報告。
                 【新聞內容】：{news_clip}
@@ -104,14 +179,14 @@ with tab1:
                     st.session_state.pending_note_topic = "最新教育專題"
                 st.info(f"### 📰 教育趨勢導讀報告")
                 st.markdown(full_analysis)
-                st.success("✅ 已自動鎖定專案標題。")
+                st.success("✅ 系統已自動鎖定主題，可至「策略筆記」生成矩陣。")
 
 # --- Tab 2: 專題戰略筆記 ---
 with tab2:
-    st.header("📚 專題實務戰略矩陣")
-    note_t = st.text_input("專題名稱", st.session_state.get('pending_note_topic', "數位學習精進方案"))
+    st.markdown("### 📚 實務戰略行動矩陣")
+    note_t = st.text_input("當前鎖定專題：", st.session_state.get('pending_note_topic', "數位學習精進方案 2.0"))
     
-    if st.button("📖 生成精確策略矩陣"):
+    if st.button("📖 生成行政戰略架構"):
         if model:
             with st.spinner("煉製核心學理與行動矩陣中..."):
                 p = f"""
@@ -137,89 +212,76 @@ with tab2:
                 st.session_state.last_note = model.generate_content(p).text
                 
     if 'last_note' in st.session_state:
-        st.markdown("---")
+        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(st.session_state.last_note)
-        if st.button("📋 清除內容重新輸入"):
+        if st.button("🗑️ 清除內容"):
             del st.session_state.last_note
             st.rerun()
 
 # --- Tab 3: 限時實戰模擬 ---
 with tab3:
-    st.header("⚖️ 實戰模擬")
     col_l, col_r = st.columns([1, 1.2], gap="large")
     with col_l:
-        st.subheader("📍 模擬命題")
+        st.subheader("📍 模擬考題視窗")
         timer_placeholder = st.empty()
         
-        if st.button("⏱️ 開始計時"):
+        if st.button("⏱️ 啟動 37 分鐘限時模擬"):
             st.session_state.start_time = time.time()
             st.session_state.timer_running = True
         
         if st.session_state.get("timer_running", False):
             rem = max(0, 37 * 60 - int(time.time() - st.session_state.start_time))
             mins, secs = divmod(rem, 60)
-            timer_placeholder.markdown(f'<div class="timer-display">⏳ {mins:02d}:{secs:02d}</div>', unsafe_allow_html=True)
+            timer_placeholder.markdown(f'<div class="timer-display">⏳ 剩餘時間 {mins:02d}:{secs:02d}</div>', unsafe_allow_html=True)
         
-        sel_choice = st.selectbox("選取預設向度", list(THEME_POOL.keys()))
-        manual_theme = st.text_input("🖋️ 手動輸入自訂向度（若填寫則優先採用）：", placeholder="例如：校園性別平等、永續校園發展...")
+        sel_choice = st.selectbox("選擇預設命題向度：", list(THEME_POOL.keys()))
+        manual_theme = st.text_input("🖋️ 自訂命題主題（選填）：", placeholder="若不填則依上方選取向度命題")
         
-        if st.button("🚀 生成考題"):
+        if st.button("🚀 生成申論試題"):
             if model:
-                with st.spinner("教授命題中..."):
+                with st.spinner("閱卷委員命題中..."):
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
                     q_prompt = f"""
                     請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。
                     主題為：『{target_topic}』。
                     
-                    【⚠️ 重要指令】：直接開始輸出試題內容，嚴禁包含「好的」、「謹遵規範」、「為您命製」等任何開場白或問候語。
+                    【⚠️ 重要指令】：直接開始輸出試題內容，嚴禁包含任何開場白。
                     
                     【命題格式規範】：
-                    1. 以簡練專業的語言描述一個具體的校園行政困境、政策執行挑戰或教學現況，其中考題包含問題核心內涵、政策分析或理念價值、具體的行政領導作為、推動策略或解決方案(總字數約150字）。
-                    2. 語言風格：嚴謹且具備校長治理層級的厚度。
+                    1. 以簡練專業的語言描述一個具體的校園行政困境、政策執行挑戰或教學現況（約 150 字）。
+                    2. 試題需包含：核心價值、行政作為、推動策略三大部分。
                     """
                     q = model.generate_content(q_prompt).text
                     st.session_state.current_q = q
         
-        st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題將顯示於此...")}</div>', unsafe_allow_html=True)
 
     with col_r:
-        st.subheader("✍️ 答案卷")
-        ans_input = st.text_area("在此輸入您的擬答...", height=350, key="ans_box")
-        st.markdown(f'<span class="word-count-badge">📝 字數：{len(ans_input)}</span>', unsafe_allow_html=True)
+        st.subheader("🖋️ 擬答作答區")
+        ans_input = st.text_area("請在此輸入擬答架構或全文...", height=430, key="ans_box", placeholder="建議以：一、核心理念；二、執行策略；三、預期成效為結構...")
+        st.markdown(f'<div style="text-align:right"><span class="word-count-badge">📝 當前字數：{len(ans_input)}</span></div>', unsafe_allow_html=True)
         
-        if st.button("⚖️ 提交審閱"):
+        if st.button("⚖️ 提交召集人閱卷評分"):
             if model and ans_input:
-                with st.spinner("召集人統整評分中..."):
+                with st.spinner("評審委員會評分中..."):
                     grading_prompt = f"""
-                    你現在是「國中校長甄試閱卷召集人」。考量考生在 37 分鐘內需完成審題、佈局與作答，請以「高效精準」與「結構領導」為核心進行適中評分。
+                    你現在是「國中校長甄試閱卷召集人」。請針對考擬答進行深度評分。
                     
-                    閱卷標準：
-                    1. **問題洞察與核心價值 (6分)**：能否在時限內精準切入議題本質，展現清晰的行政哲學。
-                    2. **系統領導與橫向連結 (7分)**：策略佈局是否具備系統感（跨處室分工），展現領導者的治理框架。
-                    3. **實務執行與政策轉化 (6分)**：作法是否具體可行且對接教育政策，而非僅是名詞堆疊。
-                    4. **結構邏輯與行政素養 (6分)**：層次是否條列鮮明、論述穩重，符合校長應有的專業人格特質。
-
                     【題目】：{st.session_state.current_q}
                     【考生擬答】：{ans_input}
-
                     ---
                     請依下列格式回覆：
-                    ### 🎓 校長甄試教授評審委員會評分報告
+                    ### 🎓 校長甄試教授評分報告
                     - 問題洞察與核心價值：__/6
                     - 系統領導與橫向連結：__/7
                     - 實務執行與政策轉化：__/6
                     - 結構邏輯與行政素養：__/6
                     **【總分評定：__/25】**
 
-                    ### 🖋️ 委員會導師整體評語
-                    (請針對「限時內的表現」指出其較接近「行政慣性回應」或「系統領導論述」，並肯定其結構性優勢或指出關鍵缺憾。)
-
-                    ### ⚠️ 致命傷診斷
-                    (若出現：完全偏題、法理錯誤、或在 37 分鐘內僅有空洞文字缺乏作法，請明確指正。)
-
-                    ### 💎 格局升級建議
-                    (提供一個能讓答案在「有限字數下」更具殺傷力的專業金句或關鍵術語。)
+                    ### 🖋️ 綜合評語與導師指引
+                    ### ⚠️ 行政盲點診斷
+                    ### 💎 格局提升金句
                     """
                     fb = model.generate_content(grading_prompt).text
-                    st.session_state.feedback = fb
-                    st.markdown(f"{fb}")
+                    st.markdown("---")
+                    st.markdown(fb)
