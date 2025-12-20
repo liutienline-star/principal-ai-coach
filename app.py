@@ -7,7 +7,7 @@ import time
 # 1. 頁面基本設定
 st.set_page_config(page_title="教育閱讀專區", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 樣式 (保持不變) ---
+# --- 🎨 核心 CSS 樣式 ---
 st.markdown("""
     <style>
     .scroll-box { height: 260px; overflow-y: auto; border: 2px solid #D4AF37; padding: 20px; border-radius: 10px; background-color: #1e1e1e; color: #f0f0f0; margin-bottom: 20px; }
@@ -49,13 +49,14 @@ THEME_POOL = {
     "🏆 領導願景與品牌經營": "桃園「教育善好」願景、品牌學校形塑、ESG 永續經營、韌性領導。",
     "📘 課程發展與新課綱領航": "108 課綱深耕、雙語教育、SDGs 國際教育、跨域課程整合能力。",
     "📖 教學領航與數位轉型": "GenAI 教學應用倫理、數位公民素養、教師 PLC 運作實務、生生用平板 2.0。",
-    "⚖️ 法理實務與危機處理": "校事會議、霸凌防制條例新制、性平法實務、親師衝突溝通策略。",
+    "⚖️ 法理實務與危機處理": "校事會議、霸靈防制條例新制、性平法實務、親師衝突溝通策略。",
     "❤️ SEL 與學生輔導": "114-118年社會情緒學習計畫、學生心理健康韌性、正向管教、中輟預防。"
 }
 
 # --- 4. 功能分頁 ---
 tab1, tab2, tab3 = st.tabs(["📰 1. 文章閱讀區", "📚 2. 專題筆記區", "✍️ 3. 模擬練習區"])
 
+# --- Tab 1: 文章閱讀與轉化 ---
 with tab1:
     st.header("📰 文章閱讀與轉化")
     st.markdown("##### 📍 重要必讀資訊來源")
@@ -82,38 +83,57 @@ with tab1:
                 請按以下結構輸出（使用 Markdown 格式）：
                 1. 📌 **轉化專題標題**：(請給出一個具備申論題氣勢的 15 字以內標題)
                 2. 🔍 **核心要義**：(用兩句話總結新聞中最關鍵的政策或教育脈絡)
-                3. 💡 **校長經營視角**：(從校長領導角度出發，列出 3 個本新聞對應的「經營關鍵點」)
+                3. 💡 **校長經營視視角**：(從校長領導角度出發，列出 3 個本新聞對應的「經營關鍵點」)
                 4. 🔗 **政策對接**：(本新聞如何對接到桃園「教育善好」、SDGs、或 112-114 教育趨勢？)
                 5. ❓ **潛在考點命題**：(根據此新聞，模擬一個 25 分的申論題大方向)
                 """
                 response = model.generate_content(reading_prompt)
                 full_analysis = response.text
                 
-                # 自動鎖定標題給下一頁使用
                 try:
                     title_line = full_analysis.split('1. 📌 **轉化專題標題**：')[1].split('\n')[0].strip()
                     st.session_state.pending_note_topic = title_line
                 except:
-                    st.session_state.pending_note_topic = "最新教育專題"
+                    st.session_state.pending_note_topic = "最新教育專案"
                 
                 st.info(f"### 📰 教育趨勢導讀報告")
                 st.markdown(full_analysis)
-                st.success("✅ 已自動鎖定專題標題，您可切換至「專題筆記」生成完整策略。")
+                st.success("✅ 已自動鎖定專題標題，您可切換至「專題筆記區」生成戰略矩陣。")
 
+# --- Tab 2: 專題戰略筆記 (去蕪存菁版) ---
 with tab2:
-    st.header("📚 專題實務筆記")
+    st.header("📚 專題實務戰略筆記")
     note_t = st.text_input("專題名稱", st.session_state.get('pending_note_topic', "數位學習精進方案"))
+    
     if st.button("📖 生成校長視角策略"):
         if model:
-            with st.spinner("策略生成中..."):
-                p = f"你現在是國中校長。針對專題『{note_t}』提供 Who, What, How, Why 策略。必須包含桃園教育政策連結與具體績效指標。"
+            with st.spinner("正在煉製核心策略矩陣..."):
+                p = f"""
+                你現在是教育行政專家。請針對專題『{note_t}』生成一份純粹的「校長經營戰略矩陣」。
+                
+                【限制要求】：
+                1. 嚴禁任何開場白（例如：身為校長我會...）或結束語（例如：綜上所述...）。
+                2. 嚴禁散文式論述。
+                3. 請直接以 Markdown 表格形式輸出。
+                
+                【表格維度】：
+                - **維度 (Dimension)**：Who, What, How, Why
+                - **核心策略內容**：精煉的行動方案
+                - **桃園政策連結**：對接「教育善好」或具體局端計畫
+                - **績效指標 (KPI)**：可量化或可觀察的目標
+                """
                 st.session_state.last_note = model.generate_content(p).text
+                
     if 'last_note' in st.session_state:
         st.markdown("---")
         st.markdown(st.session_state.last_note)
+        if st.button("📋 重新生成"):
+            st.session_state.pop('last_note')
+            st.rerun()
 
+# --- Tab 3: 模擬練習與教授評分 ---
 with tab3:
-    st.header("⚖️ 限時實戰模擬")
+    st.header("⚖️ 限時實戰模擬區")
     col_l, col_r = st.columns([1, 1.2], gap="large")
     with col_l:
         st.subheader("📍 模擬命題")
@@ -130,11 +150,11 @@ with tab3:
         sel_choice = st.selectbox("選取向度", list(THEME_POOL.keys()))
         if st.button("🚀 生成 114 年趨勢試題"):
             if model:
-                with st.spinner("教授命題中..."):
-                    q = model.generate_content(f"請針對『{THEME_POOL[sel_choice]}』出一題25分申論題。要求：情境化、複合型問題，測驗校長格局。").text
+                with st.spinner("資深教授命題中..."):
+                    q = model.generate_content(f"請針對『{THEME_POOL[sel_choice]}』出一題25分申論題。要求：情境化、複合型問題，測驗校長領導格局與政策轉化力。").text
                     st.session_state.current_q = q
                     st.session_state.current_theme = sel_choice
-        st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請先生成試題")}</div>', unsafe_allow_html=True)
 
     with col_r:
         st.subheader("✍️ 答案卷")
@@ -143,32 +163,15 @@ with tab3:
         
         if st.button("⚖️ 提交教授評審團"):
             if model and ans_input:
-                with st.spinner("資深教授評審中..."):
+                with st.spinner("評審委員會嚴格閱卷中..."):
                     grading_prompt = f"""
-                    你現在是「教育行政教授」兼「校長甄試閱卷召集人」。請用嚴謹學術視角評分。
+                    你現在是「教育行政教授」兼「校長甄試閱卷召集人」。請用最嚴謹的學術與行政視角評分。
                     
                     【評分權重】：
-                    1. 系統領導格局 (20%)：是校長視角還是執行者視角？
-                    2. 理論與政策轉譯 (30%)：是否精確對接桃園「教育善好」、SEL、GenAI 等趨勢？
-                    3. 法理嚴謹度與邏輯 (30%)：程序是否合法？結構是否嚴密？
-                    4. 前瞻洞察力 (20%)：有無點、線、面的佈局與教育哲學厚度？
+                    1. 系統領導格局 (20%)：是「系統領導者」還是單純的「事務執行者」？
+                    2. 理論與政策轉譯 (30%)：是否對接桃園「教育善好」、SEL、GenAI、SDGs 等 112-114 趨勢？
+                    3. 法理嚴謹度與邏輯 (30%)：程序是否合法（如校事會議流程）？結構是否嚴密？
+                    4. 前瞻洞察力 (20%)：有無展現教育哲學的厚度與未來洞察？
 
                     【題目】：{st.session_state.current_q}
                     【考生擬答】：{ans_input}
-
-                    ---
-                    請回覆以下結構：
-                    ### 🎓 教授評審委員會評分報告
-                    - **系統領導格局**：/5
-                    - **政策與理論轉譯**：/7.5
-                    - **法理嚴謹度與邏輯**：/7.5
-                    - **前瞻性與洞察力**：/5
-                    **【總分評定： /25】**
-
-                    ### 🖋️ 委員會導師點評 (請直指本答案是「行政慣性」還是「專業領導」)
-                    ### ⚠️ 致命傷提醒 (若內容無意義、亂打、或AI罐頭感重，請給予極低分並嚴厲指正)
-                    ### 💎 優化金句 (提供一個能讓答案瞬間提升格局的專業術語)
-                    """
-                    fb = model.generate_content(grading_prompt).text
-                    st.session_state.feedback = fb
-                    st.markdown(f"{fb}")
