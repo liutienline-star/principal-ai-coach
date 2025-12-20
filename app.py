@@ -7,68 +7,92 @@ import time
 # 1. 頁面基本設定
 st.set_page_config(page_title="教育領航者閱讀專區", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 樣式美化 (確保佈局平行且高度一致) ---
+# --- 🎨 核心 CSS 柔和化美編 ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
     
+    /* 全域設定 */
     html, body, [class*="css"] { font-family: 'Noto Sans TC', sans-serif; }
-    .stApp { background-color: #0e1117; }
     
-    /* 核心試題視窗 (左側題目區) */
+    /* 背景改為深石板藍，比純黑更耐看 */
+    .stApp { background-color: #1a1c23; color: #ced4da; }
+    
+    /* 核心試題視窗 (左側題目區) - 邊框改為柔和的莫蘭迪金 */
     .scroll-box { 
         height: 520px; 
         overflow-y: auto; 
-        border: 1px solid rgba(212, 175, 55, 0.3); 
-        padding: 25px; 
-        border-radius: 12px; 
-        background: linear-gradient(145deg, #1e1e1e, #252525);
-        color: #e0e0e0; 
+        border: 1px solid rgba(193, 174, 148, 0.4); 
+        padding: 28px; 
+        border-radius: 16px; 
+        background: #232731;
+        color: #e9ecef; 
         line-height: 1.8;
         font-size: 1.1rem;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
 
-    /* 強制調整 Streamlit text_area 高度以對齊左側題目區 */
+    /* 強制調整 Streamlit text_area 高度 */
     div[data-baseweb="textarea"] > div {
         height: 520px !important;
+        background-color: #232731 !important;
+        border-radius: 16px !important;
+        border: 1px solid rgba(193, 174, 148, 0.2) !important;
+        color: #e9ecef !important;
     }
 
-    /* 頂部功能列文字微調 */
+    /* 頂部功能列文字 */
     .tiny-label {
-        font-size: 0.85rem !important;
-        color: #D4AF37;
-        margin-bottom: 2px;
+        font-size: 0.88rem !important;
+        color: #c1ae94; /* 沉穩金 */
+        margin-bottom: 4px;
         font-weight: 500;
+        letter-spacing: 0.5px;
     }
 
+    /* 標題改為絲綢漸層 */
     .main-header {
-        background: linear-gradient(90deg, #D4AF37, #Faf0af);
+        background: linear-gradient(135deg, #e9d5a1 0%, #a88e5a 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 700; font-size: 2.3rem; margin-bottom: 0.5rem;
+        font-weight: 700; font-size: 2.4rem; margin-bottom: 0.8rem;
     }
 
+    /* 計時器改為溫潤的珊瑚色 */
     .timer-mini { 
-        font-size: 1.3rem; font-weight: 700; color: #ff4b4b; 
-        text-align: center; background: rgba(255, 75, 75, 0.1);
-        padding: 5px; border-radius: 8px; border: 1px solid #ff4b4b;
+        font-size: 1.4rem; font-weight: 700; color: #ee8e8e; 
+        text-align: center; background: rgba(238, 142, 142, 0.1);
+        padding: 6px; border-radius: 10px; border: 1px solid rgba(238, 142, 142, 0.3);
     }
 
+    /* 標籤 Badge 顏色優化 */
     .word-count-badge { 
-        background: linear-gradient(45deg, #008080, #00a0a0); 
-        color: white; padding: 5px 15px; 
+        background: linear-gradient(45deg, #4a7c7c, #639a9a); 
+        color: white; padding: 6px 18px; 
         border-radius: 50px; font-size: 0.85rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     
-    /* 按鈕樣式調整 */
+    /* 按鈕更顯質感 */
     .stButton>button {
-        border-radius: 8px;
-        height: 3em;
-        background-color: #262730;
-        color: #D4AF37;
-        border: 1px solid #D4AF37;
+        border-radius: 10px;
+        height: 3.2em;
+        background-color: #2d323e;
+        color: #e9d5a1;
+        border: 1px solid rgba(233, 213, 161, 0.4);
         font-weight: 500;
+        transition: all 0.3s ease;
     }
+    .stButton>button:hover {
+        background-color: #a88e5a;
+        color: #1a1c23;
+        border-color: #a88e5a;
+        box-shadow: 0 5px 15px rgba(168, 142, 90, 0.3);
+    }
+
+    /* Tab 導覽列優化 */
+    .stTabs [data-baseweb="tab-list"] { background-color: transparent; }
+    .stTabs [data-baseweb="tab"] { color: #888; font-size: 1.05rem; }
+    .stTabs [aria-selected="true"] { color: #e9d5a1 !important; font-weight: 700; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -112,12 +136,12 @@ THEME_POOL = {
 
 # --- 4. 頂部標題 ---
 st.markdown('<h1 class="main-header">🏫 教育領航者專題研究室</h1>', unsafe_allow_html=True)
-st.markdown("*專為教育甄試設計的深度閱讀與模擬系統*")
+st.markdown("<p style='color:#8892b0; margin-top:-10px;'>專為教育甄試設計的深度閱讀與模擬系統</p>", unsafe_allow_html=True)
 
 # --- 5. 功能分頁 ---
 tab1, tab2, tab3 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍️ 實戰模擬"])
 
-# --- Tab 1: 趨勢轉化 (完整指令恢復) ---
+# --- Tab 1: 趨勢轉化 ---
 with tab1:
     st.markdown("### 📍 權威資訊導引")
     c = st.columns(4)
@@ -129,11 +153,11 @@ with tab1:
         with c[i]: st.link_button(name, url)
 
     st.markdown("---")
-    news_clip = st.text_area("🔍 請貼上欲分析的教育新聞或政策文本：", height=180, placeholder="將文字貼於此處...")
+    news_clip = st.text_area("🔍 請貼上欲分析的教育新聞或政策文本：", height=180, placeholder="將文字貼於此處...", key="news_in")
     
     if st.button("🎯 開始深度考點轉化"):
         if news_clip and model:
-            with st.spinner("正在以閱卷教授視視角解析文本..."):
+            with st.spinner("正在以閱卷教授視角解析文本..."):
                 reading_prompt = f"""
                 你現在是「教育政策高級分析師」。請針對這段新聞，提供一份專門為「校長甄試考生」準備的深層導讀報告。
                 【新聞內容】：{news_clip}
@@ -154,7 +178,7 @@ with tab1:
                 st.info(f"### 📰 教育趨勢導讀報告")
                 st.markdown(full_analysis)
 
-# --- Tab 2: 戰略矩陣 (完整指令恢復) ---
+# --- Tab 2: 戰略矩陣 ---
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
     note_t = st.text_input("當前鎖定專題：", st.session_state.get('pending_note_topic', "數位學習精進方案 2.0"))
@@ -191,7 +215,7 @@ with tab2:
             del st.session_state.last_note
             st.rerun()
 
-# --- ✍️ Tab 3: 實戰模擬 (平行佈局 + 完整評分指令恢復) ---
+# --- Tab 3: 實戰模擬 ---
 with tab3:
     # --- A. 上方功能控制列 ---
     c_timer_btn, c_timer_val, c_select, c_input, c_gen = st.columns([0.8, 1, 1.5, 2, 0.8])
@@ -217,7 +241,7 @@ with tab3:
     
     with c_input:
         st.markdown('<p class="tiny-label">🖋️ 自訂主題 (可選)</p>', unsafe_allow_html=True)
-        manual_theme = st.text_input("自訂主題", placeholder="若不填則依向度命題...", label_visibility="collapsed")
+        manual_theme = st.text_input("自訂主題", placeholder="若不填則依向度命題...", label_visibility="collapsed", key="custom_t")
         
     with c_gen:
         st.markdown('<p class="tiny-label">🚀 命題</p>', unsafe_allow_html=True)
@@ -235,7 +259,7 @@ with tab3:
                     """
                     st.session_state.current_q = model.generate_content(q_prompt).text
 
-    st.markdown("<div style='margin-bottom: 15px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 20px;'></div>", unsafe_allow_html=True)
 
     # --- B. 平行對稱作戰區 ---
     col_q, col_a = st.columns([1, 1.8], gap="medium")
@@ -246,9 +270,8 @@ with tab3:
 
     with col_a:
         st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (與左側高度同步)</p>', unsafe_allow_html=True)
-        ans_input = st.text_area("作答區", label_visibility="collapsed", key="ans_box_v3", placeholder="請依照：一、核心理念；二、執行策略；三、預期成效之架構書寫...")
+        ans_input = st.text_area("作答區", label_visibility="collapsed", key="ans_box_final", placeholder="請依照：一、核心理念；二、執行策略；三、預期成效之架構書寫...")
         
-        # 狀態列
         f_count, f_submit = st.columns([1, 1])
         with f_count:
             st.markdown(f'<span class="word-count-badge">📝 當前字數：{len(ans_input)}</span>', unsafe_allow_html=True)
@@ -277,8 +300,9 @@ with tab3:
 
     # --- C. 評分顯示區 ---
     if 'feedback' in st.session_state:
-        st.markdown("---")
+        st.markdown("<div style='margin-top:30px; padding:20px; background:#2d323e; border-radius:16px; border-left:5px solid #a88e5a;'>", unsafe_allow_html=True)
         st.markdown(st.session_state.feedback)
+        st.markdown("</div>", unsafe_allow_html=True)
         if st.button("🗑️ 清除評分結果"):
             del st.session_state.feedback
             st.rerun()
