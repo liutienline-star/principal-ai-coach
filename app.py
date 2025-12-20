@@ -7,7 +7,7 @@ import time
 # 1. 頁面基本設定
 st.set_page_config(page_title="18銅人陣：114實戰校準版", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 樣式 ---
+# --- 🎨 核心 CSS 樣式 (保持不變) ---
 st.markdown("""
     <style>
     .scroll-box { height: 260px; overflow-y: auto; border: 2px solid #D4AF37; padding: 20px; border-radius: 10px; background-color: #1e1e1e; color: #f0f0f0; margin-bottom: 20px; }
@@ -44,13 +44,13 @@ def init_ai():
 
 model = init_ai()
 
-# --- 3. 向度池 (融入 114 年核心重點) ---
+# --- 3. 向度池 ---
 THEME_POOL = {
     "🏆 領導願景與品牌經營": "桃園「教育善好」願景、品牌學校形塑、ESG 永續經營、韌性領導。",
     "📘 課程發展與新課綱領航": "108 課綱深耕、雙語教育、SDGs 國際教育、跨域課程整合能力。",
-    "📖 教學領航與數位轉型": "GenAI 教學應用倫理、數位公民素養、教師 PLC 運作、生生用平板 2.0。",
+    "📖 教學領航與數位轉型": "GenAI 教學應用倫理、數位公民素養、教師 PLC 運作實務、生生用平板 2.0。",
     "⚖️ 法理實務與危機處理": "校事會議、霸凌防制條例新制、性平法實務、親師衝突溝通策略。",
-    "❤️ SEL 與學生輔導": "114-118年社會情緒學習計畫、學生心理韌性、正向管教、中輟預防。"
+    "❤️ SEL 與學生輔導": "114-118年社會情緒學習計畫、學生心理健康韌性、正向管教、中輟預防。"
 }
 
 # --- 4. 功能分頁 ---
@@ -61,19 +61,18 @@ with tab1:
     st.markdown("##### 📍 校長必讀資訊來源")
     c = st.columns(4)
     links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
-             ("🏫 桃園教育局", "https://www.tyc.edu.tw/"),
-             ("📖 國教院", "https://www.naer.edu.tw//"),
-             ("🌟 教育評論", "http://www.ater.org.tw/commentmonth.html")]
+             ("🏫 桃園局", "https://www.tycg.gov.tw/edu/index.jsp"),
+             ("📖 e 院", "https://e-naer.naer.edu.tw/"),
+             ("🌟 領航", "https://www.tycg.gov.tw/edu/home.jsp?id=69")]
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url)
 
-   st.markdown("---")
-    news_clip = st.text_area("在此貼上新聞內容，AI 將為您轉化為練習專題：", height=150, placeholder="例如：貼上關於桃園教育善好或 AI 輔助教學的新聞內容...")
+    st.markdown("---")
+    news_clip = st.text_area("在此貼上新聞內容，AI 將為您進行深度導讀與考點轉化：", height=150)
     
     if st.button("🎯 重點摘錄與導讀"):
         if news_clip and model:
             with st.spinner("正在進行專業教育分析與導讀..."):
-                # 建立多層次的導讀提示詞
                 reading_prompt = f"""
                 你現在是「教育政策高級分析師」。請針對這段新聞，提供一份專門為「校長甄試考生」準備的深層導讀報告。
                 
@@ -87,19 +86,19 @@ with tab1:
                 4. 🔗 **政策對接**：(本新聞如何對接到桃園「教育善好」、SDGs、或 112-114 教育趨勢？)
                 5. ❓ **潛在考點命題**：(根據此新聞，模擬一個 25 分的申論題大方向)
                 """
-                
                 response = model.generate_content(reading_prompt)
                 full_analysis = response.text
                 
-                # 提取標題用於 session_state (為了之後的筆記生成)
-                # 假設第一行是標題，簡單處理
-                title_line = full_analysis.split('\n')[0].replace('1. 📌 **轉化專題標題**：', '').strip()
-                st.session_state.pending_note_topic = title_line
+                # 自動鎖定標題給下一頁使用
+                try:
+                    title_line = full_analysis.split('1. 📌 **轉化專題標題**：')[1].split('\n')[0].strip()
+                    st.session_state.pending_note_topic = title_line
+                except:
+                    st.session_state.pending_note_topic = "最新教育專題"
                 
-                # 在介面上顯示精美的導讀結果
                 st.info(f"### 📰 教育趨勢導讀報告")
                 st.markdown(full_analysis)
-                st.success("✅ 已自動鎖定專題標題，您可切換至「專題筆記」分頁生成完整策略。")
+                st.success("✅ 已自動鎖定專題標題，您可切換至「專題筆記」生成完整策略。")
 
 with tab2:
     st.header("📚 專題實務筆記")
@@ -132,8 +131,7 @@ with tab3:
         if st.button("🚀 生成 114 年趨勢試題"):
             if model:
                 with st.spinner("教授命題中..."):
-                    q_prompt = f"請針對『{THEME_POOL[sel_choice]}』出一題25分申論題。要求：情境化、複合型問題，需測驗考生的決策力與格局。"
-                    q = model.generate_content(q_prompt).text
+                    q = model.generate_content(f"請針對『{THEME_POOL[sel_choice]}』出一題25分申論題。要求：情境化、複合型問題，測驗校長格局。").text
                     st.session_state.current_q = q
                     st.session_state.current_theme = sel_choice
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
@@ -145,15 +143,14 @@ with tab3:
         
         if st.button("⚖️ 提交教授評審團"):
             if model and ans_input:
-                with st.spinner("資深教授與評閱委員審查中..."):
+                with st.spinner("資深教授評審中..."):
                     grading_prompt = f"""
-                    你現在是「國立教育大學教育行政教授」兼「校長甄試閱卷召集人」。
-                    請用極度嚴謹且具鑑別度的視角評分。
-
+                    你現在是「教育行政教授」兼「校長甄試閱卷召集人」。請用嚴謹學術視角評分。
+                    
                     【評分權重】：
-                    1. 系統領導格局 (20%)：是校長視角還是工頭視角？
-                    2. 理論與政策轉譯 (30%)：是否精確對接桃園「教育善好」、SEL、GenAI 等 112-114 趨勢？
-                    3. 法理嚴謹度 (30%)：程序是否合法？邏輯是否嚴密？
+                    1. 系統領導格局 (20%)：是校長視角還是執行者視角？
+                    2. 理論與政策轉譯 (30%)：是否精確對接桃園「教育善好」、SEL、GenAI 等趨勢？
+                    3. 法理嚴謹度與邏輯 (30%)：程序是否合法？結構是否嚴密？
                     4. 前瞻洞察力 (20%)：有無點、線、面的佈局與教育哲學厚度？
 
                     【題目】：{st.session_state.current_q}
@@ -166,10 +163,10 @@ with tab3:
                     - **政策與理論轉譯**：/7.5
                     - **法理嚴謹度與邏輯**：/7.5
                     - **前瞻性與洞察力**：/5
-                    **【總分評定： /25】** (註：18分以上具競爭力，21分以上為榜首潛力)
+                    **【總分評定： /25】**
 
                     ### 🖋️ 委員會導師點評 (請直指本答案是「行政慣性」還是「專業領導」)
-                    ### ⚠️ 致命傷提醒 (若內容無意義或亂打，請給予極低分並嚴厲指正)
+                    ### ⚠️ 致命傷提醒 (若內容無意義、亂打、或AI罐頭感重，請給予極低分並嚴厲指正)
                     ### 💎 優化金句 (提供一個能讓答案瞬間提升格局的專業術語)
                     """
                     fb = model.generate_content(grading_prompt).text
