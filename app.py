@@ -149,7 +149,7 @@ with tab3:
             timer_placeholder.markdown(f'<div class="timer-display">⏳ {mins:02d}:{secs:02d}</div>', unsafe_allow_html=True)
         
         sel_choice = st.selectbox("選取向度", list(THEME_POOL.keys()))
-        if st.button("🚀 生成 114 年趨勢試題"):
+        if st.button("🚀 生成趨勢考題"):
             if model:
                 with st.spinner("教授命題中..."):
                     q = model.generate_content(f"請針對『{THEME_POOL[sel_choice]}』出一題25分申論題。要求：情境化、複合型問題。").text
