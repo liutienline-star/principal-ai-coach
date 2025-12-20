@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 # 1. 頁面基本設定
-st.set_page_config(page_title="閱讀專區", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="體育課程研究室", layout="wide", page_icon="🏫")
 
 # --- 🎨 核心 CSS 柔和化美編 ---
 st.markdown("""
@@ -98,7 +98,7 @@ st.markdown("""
 
 # --- 🔐 密碼保護 ---
 if "password_correct" not in st.session_state:
-    st.markdown('<h1 class="main-header">🛡️ 學術研究室</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🛡️ 體育課程研究室</h1>', unsafe_allow_html=True)
     col_p1, col_p2, col_p3 = st.columns([1,2,1])
     with col_p2:
         pwd = st.text_input("🔑 請輸入行政通關密碼：", type="password")
@@ -135,7 +135,7 @@ THEME_POOL = {
 }
 
 # --- 4. 頂部標題 ---
-st.markdown('<h1 class="main-header">🏫 教育領航者專題研究室</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🏫 體育課程研究室</h1>', unsafe_allow_html=True)
 st.markdown("<p style='color:#8892b0; margin-top:-10px;'>專為教育甄試設計的深度閱讀與模擬系統</p>", unsafe_allow_html=True)
 
 # --- 5. 功能分頁 ---
