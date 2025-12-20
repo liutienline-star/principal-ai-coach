@@ -69,7 +69,7 @@ with tab1:
 
     st.markdown("---")
     news_clip = st.text_area("在此貼上新聞內容，AI 將為您轉化為練習專題：", height=150)
-    if st.button("🎯 轉化為專題"):
+    if st.button("🎯 重點摘錄與導讀"):
         if news_clip and model:
             with st.spinner("分析中..."):
                 extracted = model.generate_content(f"將此新聞提取為校長甄試專題標題（不超過15字）：\n{news_clip}").text.strip()
