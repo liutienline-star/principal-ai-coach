@@ -3,7 +3,6 @@ import google.generativeai as genai
 from datetime import datetime
 import pandas as pd
 import time
-from streamlit_gsheets import GSheetsConnection
 
 # 1. 頁面基本設定
 st.set_page_config(page_title="18銅人陣：114實戰校準版", layout="wide", page_icon="🏫")
@@ -29,12 +28,11 @@ if "password_correct" not in st.session_state:
         else: st.error("密碼錯誤")
     st.stop()
 
-# --- 2. 核心初始化 (智慧偵測：解決 404 錯誤) ---
+# --- 2. 核心 AI 初始化 ---
 @st.cache_resource
 def init_ai():
     try:
         genai.configure(api_key=st.secrets["gemini"]["api_key"])
-        # 自動列出目前可用模型，避免 404
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         target = next((m for m in available_models if "gemini-1.5-flash" in m), 
                      next((m for m in available_models if "gemini-pro" in m), 
@@ -45,11 +43,6 @@ def init_ai():
         return None
 
 model = init_ai()
-# 初始化 Google Sheets 連線
-try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception as e:
-    st.warning(f"試算表連線尚未配置：{e}")
 
 # --- 3. 向度池 ---
 THEME_POOL = {
@@ -104,6 +97,7 @@ with tab3:
         if st.button("⏱️ 開始計時"):
             st.session_state.start_time = time.time()
             st.session_state.timer_running = True
+        
         if st.session_state.get("timer_running", False):
             rem = max(0, 37 * 60 - int(time.time() - st.session_state.start_time))
             mins, secs = divmod(rem, 60)
@@ -128,13 +122,3 @@ with tab3:
                     fb = model.generate_content(f"題目：{st.session_state.current_q}\n作答：{ans_input}\n請給予25分制評分與建議。").text
                     st.session_state.feedback = fb
                     st.markdown(f"### 🤖 AI 回饋\n{fb}")
-        
-        if st.button("💾 儲存紀錄"):
-            try:
-                new_rec = pd.DataFrame([{"時間": datetime.now().strftime("%Y-%m-%d %H:%M"), "向度": st.session_state.get('current_theme', '未分類'), "題目": st.session_state.get('current_q', ''), "擬答": ans_input, "AI評析": st.session_state.get('feedback', '尚未批改')}])
-                df = conn.read(spreadsheet=st.secrets["gsheet_url"])
-                updated_df = pd.concat([df, new_rec], ignore_index=True)
-                conn.update(spreadsheet=st.secrets["gsheet_url"], data=updated_df)
-                st.success("✅ 紀錄已同步！")
-            except Exception as e:
-                st.error(f"儲存失敗：{e}")
