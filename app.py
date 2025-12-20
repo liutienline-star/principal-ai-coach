@@ -46,7 +46,7 @@ model = init_ai()
 
 # --- 3. 向度池 ---
 THEME_POOL = {
-    "🏆 領導願景與品牌經營": "桃園「教育善好」願景、品牌學校形塑、ESG 永續經營、韌性領導。",
+    "🏆 領導願景與 brand 經營": "桃園「教育善好」願景、品牌學校形塑、ESG 永續經營、韌性領導。",
     "📘 課程發展與新課綱領航": "108 課綱深耕、雙語教育、SDGs 國際教育、跨域課程整合能力。",
     "📖 教學領航與數位轉型": "GenAI 教學應用倫理、數位公民素養、教師 PLC 運作實務、生生用平板 2.0。",
     "⚖️ 法理實務與危機處理": "校事會議、霸凌防制條例新制、性平法實務、親師衝突溝通策略。",
@@ -132,7 +132,7 @@ with tab2:
             del st.session_state.last_note
             st.rerun()
 
-# --- Tab 3: 限時實戰模擬 (採用召集人閱卷邏輯修正) ---
+# --- Tab 3: 限時實戰模擬 (優化命題類型以符合 29 期風格) ---
 with tab3:
     st.header("⚖️ 實戰模擬")
     col_l, col_r = st.columns([1, 1.2], gap="large")
@@ -156,7 +156,18 @@ with tab3:
             if model:
                 with st.spinner("教授命題中..."):
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                    q_prompt = f"請針對『{target_topic}』出一題 25 分申論題。要求：情境化、複合型問題，測驗國中校長的領導格局、法理實務與系統思考能力。"
+                    # --- 修正出題 Prompt 以符合第 29 期風格 ---
+                    q_prompt = f"""
+                    請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。
+                    主題為：『{target_topic}』。
+                    
+                    【命題格式規範】：
+                    1. 題幹（Scenario）：以簡練專業的語言描述一個具體的校園行政困境、政策執行挑戰或教學現況（約 150 字以內）。
+                    2. 子題結構：明確區分為「(一)」與「(二)」兩個子題。
+                       - 子題(一)通常測驗：核心內涵、政策分析或理念價值。
+                       - 子題(二)通常測驗：具體的行政領導作為、推動策略或解決方案。
+                    3. 語言風格：嚴謹且具備校長治理層級的厚度。
+                    """
                     q = model.generate_content(q_prompt).text
                     st.session_state.current_q = q
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
@@ -169,7 +180,6 @@ with tab3:
         if st.button("⚖️ 提交教授評審團"):
             if model and ans_input:
                 with st.spinner("召集人統整評分中..."):
-                    # 採用「閱卷召集人」專業修正後的 Prompt
                     grading_prompt = f"""
                     你現在是「國中校長甄試閱卷召集人」，負責統整多位委員的評分意見。
                     請以「真實閱卷現場的判斷邏輯」審視下列考生擬答，而非以平均理性方式給分。
