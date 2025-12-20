@@ -103,17 +103,17 @@ with tab1:
 with tab2:
     st.header("📚 專題實務筆記")
     note_t = st.text_input("專題名稱", st.session_state.get('pending_note_topic', "數位學習精進方案"))
-    if st.button("📖 生成局長視角策略"):
+    if st.button("📖 生成校長視角策略"):
         if model:
             with st.spinner("策略生成中..."):
-                p = f"你現在是桃園教育局長。針對專題『{note_t}』提供 Who, What, How, Why 策略。必須包含『教育善好』政策連結與具體績效指標。"
+                p = f"你現在是桃園國中校長。針對專題『{note_t}』提供 Who, What, How, Why 策略。必須包含『教育善好』政策連結與具體績效指標。"
                 st.session_state.last_note = model.generate_content(p).text
     if 'last_note' in st.session_state:
         st.markdown("---")
         st.markdown(st.session_state.last_note)
 
 with tab3:
-    st.header("⚖️ 37 分鐘限時實戰模擬")
+    st.header("⚖️ 限時實戰模擬")
     col_l, col_r = st.columns([1, 1.2], gap="large")
     with col_l:
         st.subheader("📍 模擬命題")
