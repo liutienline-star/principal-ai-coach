@@ -56,7 +56,7 @@ THEME_POOL = {
 # --- 4. 功能分頁 ---
 tab1, tab2, tab3 = st.tabs(["📰 1. 文章閱讀區", "📚 2. 專題筆記區", "✍️ 3. 模擬練習區"])
 
-# --- Tab 1: 文章閱讀與轉化 (保留不變) ---
+# --- Tab 1: 文章閱讀與轉化 ---
 with tab1:
     st.header("📰 文章閱讀與轉化")
     st.markdown("##### 📍 重要必讀資訊來源")
@@ -95,7 +95,7 @@ with tab1:
                 st.markdown(full_analysis)
                 st.success("✅ 已自動鎖定專案標題。")
 
-# --- Tab 2: 專題戰略筆記 (保持最終要求之架構) ---
+# --- Tab 2: 專題戰略筆記 ---
 with tab2:
     st.header("📚 專題實務戰略矩陣")
     note_t = st.text_input("專題名稱", st.session_state.get('pending_note_topic', "數位學習精進方案"))
@@ -132,7 +132,7 @@ with tab2:
             del st.session_state.last_note
             st.rerun()
 
-# --- Tab 3: 限時實戰模擬 (新增手動輸入向度) ---
+# --- Tab 3: 限時實戰模擬 (採用召集人閱卷邏輯修正) ---
 with tab3:
     st.header("⚖️ 實戰模擬")
     col_l, col_r = st.columns([1, 1.2], gap="large")
@@ -149,16 +149,15 @@ with tab3:
             mins, secs = divmod(rem, 60)
             timer_placeholder.markdown(f'<div class="timer-display">⏳ {mins:02d}:{secs:02d}</div>', unsafe_allow_html=True)
         
-        # --- 新增手動輸入向度功能 ---
         sel_choice = st.selectbox("選取預設向度", list(THEME_POOL.keys()))
         manual_theme = st.text_input("🖋️ 手動輸入自訂向度（若填寫則優先採用）：", placeholder="例如：校園性別平等、永續校園發展...")
         
         if st.button("🚀 生成考題"):
             if model:
                 with st.spinner("教授命題中..."):
-                    # 邏輯判斷：優先使用手動輸入，否則使用選單主題
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                    q = model.generate_content(f"請針對『{target_topic}』出一題25分申論題。要求：情境化、複合型問題，測驗校長領導格局。").text
+                    q_prompt = f"請針對『{target_topic}』出一題 25 分申論題。要求：情境化、複合型問題，測驗國中校長的領導格局、法理實務與系統思考能力。"
+                    q = model.generate_content(q_prompt).text
                     st.session_state.current_q = q
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
 
@@ -167,33 +166,47 @@ with tab3:
         ans_input = st.text_area("在此輸入您的擬答...", height=350, key="ans_box")
         st.markdown(f'<span class="word-count-badge">📝 字數：{len(ans_input)}</span>', unsafe_allow_html=True)
         
-        if st.button("⚖️ 提交審閱"):
+        if st.button("⚖️ 提交教授評審團"):
             if model and ans_input:
-                with st.spinner("資深教授閱卷中..."):
+                with st.spinner("召集人統整評分中..."):
+                    # 採用「閱卷召集人」專業修正後的 Prompt
                     grading_prompt = f"""
-                    你現在是校長甄試閱卷召集人。請根據以下權重為考生的擬答評分：
+                    你現在是「國中校長甄試閱卷召集人」，負責統整多位委員的評分意見。
+                    請以「真實閱卷現場的判斷邏輯」審視下列考生擬答，而非以平均理性方式給分。
 
-                    【評分權重】：
-                    1. **核心理念與學理內涵 (25%)**：是否包含具備行政厚度的價值論述？學理面向是否正確？
-                    2. **行動矩陣實務力 (35%)**：Who/What/How 的策略是否具體、具備系統領導格局？
-                    3. **桃園政策連結度 (20%)**：是否精確對接桃園「教育善好」政策計畫？
-                    4. **績效指標與前瞻洞察 (20%)**：KPI 是否量化？有無解決問題的未來佈局？
+                    ---
+                    【閱卷第一關：快篩判斷（不計分，但將影響總評）】
+                    A. 是否明確回應題目核心，未出現偏題或空轉？
+                    B. 是否站在「校長決策與治理層級」，而非單一處室或教師視視角？
+                    C. 是否具備基本教育政策語言與行政專業表述？
+
+                    ---
+                    【正式評分項目（總分 25 分）】
+                    1. **核心理念與學理內涵（6 分）**：掌握議題正確學理、轉化為具厚度的論述。
+                    2. **校長層級的系統領導與治理視角（6 分）**：跨處室整合、制度建構、資源配置與衝突決策角色。
+                    3. **行動矩陣的實務可行性（7 分）**：Who/What/How 具體且可執行、呈現領導節奏與策略。
+                    4. **政策連結、績效指標與前瞻洞察（6 分）**：對接桃園「教育善好」、KPI 具體可觀察、具備風險意識。
 
                     【題目】：{st.session_state.current_q}
                     【考生擬答】：{ans_input}
 
                     ---
-                    請回覆以下結構：
-                    ### 🎓 教授評審委員會評分報告
-                    - **核心理念與學理內涵**：/6.25
-                    - **行動矩陣實務力**：/8.75
-                    - **桃園政策連結度**：/5
-                    - **績效指標與前瞻洞察**：/5
-                    **【總分評定： /25】**
+                    【請依下列格式回覆】
+                    ### 🎓 校長甄試教授評審委員會評分報告
+                    - 核心理念與學理內涵：__/6
+                    - 校長層級的系統領導與治理視角：__/6
+                    - 行動矩陣的實務可行性：__/7
+                    - 政策連結、績效指標與前瞻洞察：__/6
+                    **【總分評定：__/25】**
 
-                    ### 🖋️ 委員會導師點評 (請直指本答案是「行政慣性」還是「專業領導」)
-                    ### ⚠️ 致命傷提醒 (若內容無意義、AI感重、或缺乏校長高度，請嚴厲指正)
-                    ### 💎 優化金句 (提供一個能讓答案瞬間提升格局的專業術語)
+                    ### 🖋️ 委員會導師整體評語
+                    請明確指出本答案整體較接近：「行政慣性型回應」或「專業校長型論述」，並說明理由。
+
+                    ### ⚠️ 致命傷診斷（請具體指出）
+                    (檢查：名詞堆疊缺乏邏輯、缺乏資源取捨、未呈現校長判斷角色、缺乏治理敘事)
+
+                    ### 💎 格局升級建議
+                    請提供一句「可直接補進原答案、能明顯拉高校長高度」的專業論述或關鍵句。
                     """
                     fb = model.generate_content(grading_prompt).text
                     st.session_state.feedback = fb
