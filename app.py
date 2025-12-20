@@ -95,7 +95,7 @@ with tab1:
                 st.markdown(full_analysis)
                 st.success("✅ 已自動鎖定專案標題。")
 
-# --- Tab 2: 專題戰略筆記 (理念/內涵/行動矩陣版) ---
+# --- Tab 2: 專題戰略筆記 (保持最終要求之架構) ---
 with tab2:
     st.header("📚 專題實務戰略矩陣")
     note_t = st.text_input("專題名稱", st.session_state.get('pending_note_topic', "數位學習精進方案"))
@@ -104,7 +104,7 @@ with tab2:
         if model:
             with st.spinner("煉製核心學理與行動矩陣中..."):
                 p = f"""
-                你現在是專業教育行政導師。請針對專題『{note_t}』，提供「去頭去尾、直擊精華」的實務戰略筆記。
+                你現在是專業教育行政導師。請針對專題『{note_t}』，提供「去頭去尾、直擊精華」的實務戰略。
                 嚴禁任何問候或贅述。
 
                 【輸出內容結構】：
@@ -132,13 +132,14 @@ with tab2:
             del st.session_state.last_note
             st.rerun()
 
-# --- Tab 3: 限時實戰模擬 (更新評分權重版) ---
+# --- Tab 3: 限時實戰模擬 (新增手動輸入向度) ---
 with tab3:
     st.header("⚖️ 限時實戰模擬")
     col_l, col_r = st.columns([1, 1.2], gap="large")
     with col_l:
         st.subheader("📍 模擬命題")
         timer_placeholder = st.empty()
+        
         if st.button("⏱️ 開始計時"):
             st.session_state.start_time = time.time()
             st.session_state.timer_running = True
@@ -148,11 +149,16 @@ with tab3:
             mins, secs = divmod(rem, 60)
             timer_placeholder.markdown(f'<div class="timer-display">⏳ {mins:02d}:{secs:02d}</div>', unsafe_allow_html=True)
         
-        sel_choice = st.selectbox("選取向度", list(THEME_POOL.keys()))
+        # --- 新增手動輸入向度功能 ---
+        sel_choice = st.selectbox("選取預設向度", list(THEME_POOL.keys()))
+        manual_theme = st.text_input("🖋️ 手動輸入自訂向度（若填寫則優先採用）：", placeholder="例如：校園性別平等、永續校園發展...")
+        
         if st.button("🚀 生成趨勢考題"):
             if model:
                 with st.spinner("教授命題中..."):
-                    q = model.generate_content(f"請針對『{THEME_POOL[sel_choice]}』出一題25分申論題。要求：情境化、複合型問題。").text
+                    # 邏輯判斷：優先使用手動輸入，否則使用選單主題
+                    target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
+                    q = model.generate_content(f"請針對『{target_topic}』出一題25分申論題。要求：情境化、複合型問題，測驗校長領導格局。").text
                     st.session_state.current_q = q
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請生成試題")}</div>', unsafe_allow_html=True)
 
@@ -164,11 +170,10 @@ with tab3:
         if st.button("⚖️ 提交教授評審團"):
             if model and ans_input:
                 with st.spinner("資深教授閱卷中..."):
-                    # 重新定義評分權重，對接戰略核心與行動矩陣
                     grading_prompt = f"""
                     你現在是校長甄試閱卷召集人。請根據以下權重為考生的擬答評分：
 
-                    【評分權重變更】：
+                    【評分權重】：
                     1. **核心理念與學理內涵 (25%)**：是否包含具備行政厚度的價值論述？學理面向是否正確？
                     2. **行動矩陣實務力 (35%)**：Who/What/How 的策略是否具體、具備系統領導格局？
                     3. **桃園政策連結度 (20%)**：是否精確對接桃園「教育善好」政策計畫？
