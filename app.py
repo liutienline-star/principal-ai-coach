@@ -61,9 +61,9 @@ with tab1:
     st.markdown("##### 📍 校長必讀資訊來源")
     c = st.columns(4)
     links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
-             ("🏫 桃園局", "https://www.tycg.gov.tw/edu/index.jsp"),
-             ("📖 e 院", "https://e-naer.naer.edu.tw/"),
-             ("🌟 領航", "https://www.tycg.gov.tw/edu/home.jsp?id=69")]
+             ("🏫 教育局", "https://www.tyc.edu.tw/"),
+             ("📖 國教院", "https://www.naer.edu.tw/"),
+             ("🌟 教評月刊", "https://http://www.ater.org.tw/commentmonth.html")]
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url)
 
