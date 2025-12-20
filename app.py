@@ -98,7 +98,7 @@ st.markdown("""
 
 # --- 🔐 密碼保護 ---
 if "password_correct" not in st.session_state:
-    st.markdown('<h1 class="main-header">🛡️ 領航研究室</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🛡️ 學術研究室</h1>', unsafe_allow_html=True)
     col_p1, col_p2, col_p3 = st.columns([1,2,1])
     with col_p2:
         pwd = st.text_input("🔑 請輸入行政通關密碼：", type="password")
