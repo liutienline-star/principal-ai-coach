@@ -19,8 +19,8 @@ st.markdown("""
         background-color: #1e1e1e; 
         color: #f0f0f0; 
         margin-bottom: 20px; 
-        line-height: 1.5;
-        font-size: 0.95rem; /* 字體縮小，增加可視內容範圍 */
+        line-height: 1.6;
+        font-size: 1.1rem; /* 字體調大，提升閱讀舒適度 */
     }
     .word-count-badge { background-color: #008080; color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; }
     .timer-display { font-size: 2rem; font-weight: bold; color: #ff4b4b; text-align: center; border: 2px solid #ff4b4b; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
@@ -167,7 +167,6 @@ with tab3:
             if model:
                 with st.spinner("教授命題中..."):
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                    # 強制 AI 直接輸出題目，不含廢話
                     q_prompt = f"""
                     請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。
                     主題為：『{target_topic}』。
