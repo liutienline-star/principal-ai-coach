@@ -106,7 +106,7 @@ with tab2:
     if st.button("📖 生成校長視角策略"):
         if model:
             with st.spinner("策略生成中..."):
-                p = f"你現在是桃園國中校長。針對專題『{note_t}』提供 Who, What, How, Why 策略。必須包含『教育善好』政策連結與具體績效指標。"
+                p = f"你現在是國中校長。針對專題『{note_t}』提供 Who, What, How, Why 策略。必須包含桃園教育政策連結與具體績效指標。"
                 st.session_state.last_note = model.generate_content(p).text
     if 'last_note' in st.session_state:
         st.markdown("---")
