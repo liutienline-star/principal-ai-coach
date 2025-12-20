@@ -57,8 +57,8 @@ THEME_POOL = {
 tab1, tab2, tab3 = st.tabs(["📰 1. 文章閱讀區", "📚 2. 專題筆記區", "✍️ 3. 模擬練習區"])
 
 with tab1:
-    st.header("📰 情報獲取與轉化")
-    st.markdown("##### 📍 校長必讀資訊來源")
+    st.header("📰 文章閱讀與轉化")
+    st.markdown("##### 📍 重要必讀資訊來源")
     c = st.columns(4)
     links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
              ("🏫 教育局", "https://www.tyc.edu.tw/"),
