@@ -243,7 +243,7 @@ with tab3:
 
     if gen_btn:
         target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-        q_prompt = f"請針對『{target}』設計一題校長甄試實務申論題。參考法規：{ref_text_sim}。情境約150字，請直接輸出題目內容。"
+        q_prompt = f"請針對『{target}』設計一題校長甄試實務申論題。參考法規：{ref_text_sim}。請用「精簡有力」的 150-200 字撰寫一個學校行政領導、課程教學、或經營等題目，請直接輸出題目內容。"
         with q_container:
             with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
                 st.session_state.current_q = stream_generate(q_prompt)
