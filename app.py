@@ -35,6 +35,7 @@ st.markdown("""
         font-weight: 500; font-size: 1.8rem; margin-bottom: 1.5rem; letter-spacing: 0.05rem;
     }
 
+    /* 試題與建議框 */
     .scroll-box { 
         height: auto; min-height: 120px; overflow-y: auto; 
         border: 1px solid #3b4252; padding: 25px; 
@@ -44,6 +45,7 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
     }
 
+    /* 控制生成內容標題大小 */
     .stMarkdown h4 {
         font-size: 1.05rem !important;
         font-weight: 500 !important;
@@ -53,6 +55,7 @@ st.markdown("""
         padding-bottom: 5px;
     }
 
+    /* 作答區高度設定 */
     div[data-baseweb="textarea"] textarea {
         color: #eceff4 !important; font-size: 1.05rem !important; line-height: 1.8 !important; padding: 20px !important;
     }
@@ -142,7 +145,7 @@ with tab1:
         with c[i]: st.link_button(name, url, use_container_width=True)
     news_clip = st.text_area("🔍 趨勢文本分析：", height=150, placeholder="貼上教育新聞以轉化考點...")
     if st.button("🎯 執行深度考點轉化"):
-        if news_clip: stream_generate(f"請以教育行政視角分析考點並給出可能的發展方向：\n{news_clip}")
+        if news_clip: stream_generate(f"請以教育行政視視角分析考點並給出可能的發展方向：\n{news_clip}")
 
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
@@ -159,7 +162,7 @@ with tab2:
             #### 一、前言
             描述該專題在當前教育脈動下的重要性。
             #### 二、提供學理
-            列出此專題適用的行政理論。
+            列出此專題適用的行政理論（如：韌性領導、權變理論、社會情緒學習等）。
             #### 三、行動矩陣 (Who, What, How)
             請使用 Markdown 表格呈現行動矩陣，欄位包含：對象(Who)、行動方案(What)、執行細節(How)。
             #### 四、結語
@@ -167,9 +170,8 @@ with tab2:
             stream_generate(p)
 
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>校準機制已啟動：</strong> 系統將依據您提供的自訂主題與法規文本進行精準命題。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>平衡命題機制啟動：</strong> 系統將依據主題自動連結社會趨勢（少子化、AI、SDGs、OECD）並生成具深度的實戰試題。</div>""", unsafe_allow_html=True)
     
-    # 僅保留計時器、自訂主題與命題按鈕
     c1, c2, c3 = st.columns([0.8, 3.5, 0.8])
     with c1:
         st.markdown('<p class="tiny-label">⏱️ 計時器</p>', unsafe_allow_html=True)
@@ -178,7 +180,7 @@ with tab3:
             st.success("計時開始")
     with c2:
         st.markdown('<p class="tiny-label">🖋️ 自訂模擬試題主題</p>', unsafe_allow_html=True)
-        manual_theme = st.text_input("自訂主題", placeholder="輸入您想練習的行政專題、政策或痛點 (例如：數位轉型下教師領導的挑戰)...", label_visibility="collapsed")
+        manual_theme = st.text_input("自訂主題", placeholder="輸入專題、政策或校園痛點 (如：校事會議處理、少子化下的特色招生)...", label_visibility="collapsed")
     with c3:
         st.markdown('<p class="tiny-label">🚀 命題</p>', unsafe_allow_html=True)
         gen_btn = st.button("生成試題", use_container_width=True)
@@ -189,10 +191,18 @@ with tab3:
     q_container = st.container()
     if gen_btn:
         if not manual_theme.strip():
-            st.warning("請先輸入自訂主題再生成試題。")
+            st.warning("請先輸入主題再生成試題。")
         else:
-            p = f"""你現在是評鑑委員。請針對考生感興趣的主題『{manual_theme}』，並參考法規『{ref_text_sim}』設計一則約 150-200 字的情境申論題。
-            要求：敘述必須一體化，將情境與核心提問融入單一段落，禁止條列格式。直接輸出題目內容。"""
+            # 更新後的「平衡與自然趨勢連結」Prompt
+            p = f"""你現在是高階教育行政評議委員。請針對主題『{manual_theme}』，並參考法規『{ref_text_sim}』設計一則約 180-220 字的情境申論題。
+
+            命題原則：
+            1. 情境寫實：設計一個具體的校園行政困境，避免邏輯破碎。
+            2. 趨勢融合：請根據主題自動關聯一項最相關的當前社會或國際趨勢（如少子化、OECD 2030、數位轉型、永續發展 SDGs 或 SEL）融入背景。
+            3. 核心提問：最後提問必須清晰，要求考生從「行政領導者」角色提出具體行動策略。
+            4. 難度控管：確保題目具專業格局，但屬於在考試時間內可完整論述的範疇。
+
+            要求：敘述一體化，禁止條列，直接輸出題目內容。"""
             with q_container:
                 with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
                     st.session_state.current_q = stream_generate(p)
@@ -211,11 +221,11 @@ with tab3:
                 st.session_state.suggested_structure = stream_generate(s_p)
                 st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (650px)</p>', unsafe_allow_html=True)
+    st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (高度 650px)</p>', unsafe_allow_html=True)
     ans_input = st.text_area("作答內容", label_visibility="collapsed", key="ans_sim_v2")
 
     f1, f2 = st.columns([1, 1])
-    with f1: st.markdown(f'<span class="word-count-badge">📝 字數：{len(ans_input)}</span>', unsafe_allow_html=True)
+    with f1: st.markdown(f'<span class="word-count-badge">📝 當前字數：{len(ans_input)}</span>', unsafe_allow_html=True)
     with f2:
         if st.button("⚖️ 提交閱卷評分", use_container_width=True):
             if ans_input:
@@ -240,4 +250,4 @@ with tab4:
                 st.line_chart(df['score_num'])
                 st.dataframe(df, use_container_width=True)
             else: st.info("尚無練習紀錄。")
-        except: st.error("資料讀取失敗，請確認資料表權限。")
+        except: st.error("資料讀取失敗，請確認資料表權限與 GCP 金鑰設定。")
