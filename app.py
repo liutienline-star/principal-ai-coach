@@ -10,7 +10,7 @@ import re
 # --- 1. 系統層級設定 ---
 st.set_page_config(page_title="體育課程研究室 | 校長甄試模擬系統", layout="wide", page_icon="🏫")
 
-# --- 2. 高度優化 CSS 視覺樣式 (防止文字牆，強化層次感) ---
+# --- 2. 高度優化 CSS (視覺降壓與結構優化) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -36,13 +36,30 @@ st.markdown("""
         font-weight: 500; font-size: 2.2rem; margin-bottom: 2rem;
     }
 
-    /* 模擬試題與架構建議的顯示框 */
+    /* 模擬試題顯示框 */
     .scroll-box { 
-        height: auto; min-height: 150px; overflow-y: auto; 
-        border: 1px solid #3b4252; padding: 25px; 
+        height: auto; min-height: 120px; overflow-y: auto; 
+        border: 1px solid #3b4252; padding: 20px; 
         border-radius: 12px; background: #242933; 
         color: #e5e9f0; line-height: 1.8; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
+    }
+
+    /* 建議架構專用微型標題 (取消粗體、縮小字體) */
+    .suggestion-content h4 {
+        font-size: 1.05rem !important;
+        font-weight: 400 !important;
+        color: #88c0d0 !important;
+        margin-top: 15px !important;
+        border-bottom: 1px solid #3b4252;
+        padding-bottom: 5px;
+    }
+    
+    .suggestion-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 10px;
+        line-height: 1.7;
     }
 
     /* 作答區調整 */
@@ -51,13 +68,6 @@ st.markdown("""
     }
     div[data-baseweb="textarea"] > div {
         height: 600px !important; background-color: #242933 !important; border-radius: 12px !important;
-    }
-
-    /* 提示訊息框 */
-    .guide-box-wide {
-        background: rgba(136, 192, 208, 0.1); border-left: 5px solid #88c0d0; 
-        padding: 25px; border-radius: 8px; margin: 20px 0; 
-        font-size: 1.05rem; color: #d8dee9; line-height: 1.9;
     }
 
     .alert-box {
@@ -86,27 +96,22 @@ if "init_done" not in st.session_state:
         "timer_running": False
     })
 
-# --- 4. 資源初始化 (自動偵測可用模型，避免 404) ---
+# --- 4. 資源初始化 ---
 @st.cache_resource(ttl=3600)
 def init_ai():
     try:
         genai.configure(api_key=st.secrets["gemini"]["api_key"])
-        
-        # 自動列出並選擇可用模型，解決 404 找不到 models/gemini-1.5-flash 的問題
         available_models = []
         try:
             for m in genai.list_models():
                 if 'generateContent' in m.supported_generation_methods:
                     available_models.append(m.name)
         except: pass
-
-        target_model = "models/gemini-1.5-pro" # 預設保底
+        target_model = "models/gemini-1.5-pro"
         if available_models:
-            # 優先級：Flash > Pro > 隨便一個
             flash = [m for m in available_models if "flash" in m]
             pro = [m for m in available_models if "pro" in m]
             target_model = flash[0] if flash else (pro[0] if pro else available_models[0])
-        
         return genai.GenerativeModel(target_model)
     except Exception as e:
         st.error(f"AI 初始化失敗: {e}")
@@ -125,28 +130,18 @@ def init_google_sheet():
 model = init_ai()
 sheet_conn = init_google_sheet()
 
-# --- 核心工具：萬用串流生成 (防斷線關鍵) ---
 def stream_generate(prompt_text, container=None):
     if not model: 
         st.error("AI 模型未連接")
         return ""
-    
     placeholder = container.empty() if container else st.empty()
     full_response = ""
-    
     try:
-        # 強制開啟串流模式並設定超時為 600 秒
-        response = model.generate_content(
-            prompt_text, 
-            stream=True, 
-            request_options={'timeout': 600}
-        )
-        
+        response = model.generate_content(prompt_text, stream=True, request_options={'timeout': 600})
         for chunk in response:
             if chunk.text:
                 full_response += chunk.text
                 placeholder.markdown(full_response + "▌") 
-        
         placeholder.markdown(full_response)
         return full_response
     except Exception as e:
@@ -157,11 +152,7 @@ def stream_generate(prompt_text, container=None):
 def log_to_google_sheets(topic, score, user_answer, feedback):
     if sheet_conn:
         try:
-            row = [
-                datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 
-                topic, score, user_answer[:4000], 
-                feedback[:800].replace('\n', ' ') + "...", ""
-            ]
+            row = [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), topic, score, user_answer[:4000], feedback[:800].replace('\n', ' ') + "...", ""]
             sheet_conn.append_row(row)
         except: pass
 
@@ -204,7 +195,7 @@ with tab1:
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url, use_container_width=True)
     st.markdown("---")
-    news_clip = st.text_area("🔍 欲分析的教育新聞文本：", height=150, placeholder="將新聞文字貼於此處...", key="news_v12")
+    news_clip = st.text_area("🔍 欲分析的教育新聞文本：", height=150, placeholder="將新聞文字貼於此處...", key="news_v13")
     if st.button("🎯 執行深度考點轉化"):
         if news_clip:
             st.markdown("### 考點精華分析：")
@@ -223,9 +214,9 @@ with tab2:
             p = f"主題：{note_t}\n參考文本：{ref_text_note}\n請依據行政實務撰寫包含前言、核心內涵、推動策略(KPI)、結語的策略筆記。"
             stream_generate(p)
 
-# --- Tab 3: 實戰模擬 (核心優化區) ---
+# --- Tab 3: 實戰模擬 (視覺優化核心) ---
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>校準機制：</strong> 若有特定法規（如校事會議新制），請務必貼入「法規校準座」，AI 會嚴格依此文本評分。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>校準機制：</strong> 若有特定法規（如校事會議新制），請務必貼入下方「法規校準座」。</div>""", unsafe_allow_html=True)
 
     c1, c2, c3, c4 = st.columns([0.8, 1.5, 2, 0.8])
     with c1:
@@ -252,7 +243,7 @@ with tab3:
 
     if gen_btn:
         target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-        q_prompt = f"請針對『{target}』設計一題校長甄試實務申論題。參考法規：{ref_text_sim}。情境約150字，請直接輸出題目。"
+        q_prompt = f"請針對『{target}』設計一題校長甄試實務申論題。參考法規：{ref_text_sim}。情境約150字，請直接輸出題目內容。"
         with q_container:
             with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
                 st.session_state.current_q = stream_generate(q_prompt)
@@ -263,29 +254,35 @@ with tab3:
         else:
             q_container.markdown(f'<div class="scroll-box">請點擊生成試題...</div>', unsafe_allow_html=True)
 
-    # --- 關鍵優化：黃金三段式架構建議 ---
-    if st.session_state.get("current_q") and st.button("💡 獲取黃金架構建議"):
-        st.markdown("### 🏆 黃金三段式答題架構建議")
-        s_prompt = f"""
-        題目：{st.session_state.current_q}
-        校準參考：{ref_text_sim}
-        你現在是閱卷委員。請針對此題，提供一份視覺極簡、具備標題層次的「校長級」答題架構。
-        嚴禁大段落敘述，請嚴格執行以下 Markdown 格式：
+    # --- 關鍵優化：收納式黃金架構建議 ---
+    if st.session_state.get("current_q"):
+        if st.button("💡 獲取黃金架構建議 (收納版)"):
+            with st.expander("🏆 黃金三段式答題架構內容", expanded=True):
+                st.markdown('<div class="suggestion-content"><div class="suggestion-scroll">', unsafe_allow_html=True)
+                s_prompt = f"""
+                題目：{st.session_state.current_q}
+                校準參考：{ref_text_sim}
+                請提供視覺極簡、具備標題層次的答題架構。
+                嚴禁粗體大標，請使用以下 Markdown 格式輸出 (使用 #### 作為小標題)：
 
-        ### 📍 一、前言：核心理念 (破題關鍵字)
-        * **[格局定位]**：(2-3 個關鍵字)
-        * **[願景連結]**：(連結政策或核心價值)
+                #### 📍 一、前言：核心理念 (破題關鍵字)
+                * [格局定位]：(2-3 個關鍵字)
+                * [願景連結]：(一句話連結)
 
-        ### 🏗️ 二、中段：行動策略 (Who/What/How)
-        * **策略 1：[行政領導層次]** -> 具體作為 -> 配套機制。
-        * **策略 2：[專業教學層次]** -> 具體作為 -> 增能手段。
-        * **策略 3：[資源整合層次]** -> 具體作為 -> 最終目標。
+                #### 🏗️ 二、中段：行動策略 (Who/What/How)
+                * 策略 1：[行政領導層次] -> 具體作為 -> 配套機制。
+                * 策略 2：[專業教學層次] -> 具體作為 -> 增能手段。
+                * 策略 3：[資源整合層次] -> 具體作為 -> 最終目標。
 
-        ### 🌟 三、結語：願景亮點
-        * **[預期成效]**：(量變與質變描述)
-        * **[教育格言]**：(強有力的結語)
-        """
-        st.session_state.suggested_structure = stream_generate(s_prompt)
+                #### 🌟 三、結語：願景亮點
+                * [預期成效]：(量變與質變描述)
+                * [教育格言]：(強有力的收尾)
+                """
+                st.session_state.suggested_structure = stream_generate(s_prompt)
+                st.markdown('</div></div>', unsafe_allow_html=True)
+        elif st.session_state.get("suggested_structure"):
+             with st.expander("🏆 黃金三段式答題架構內容"):
+                st.markdown(f'<div class="suggestion-content"><div class="suggestion-scroll">{st.session_state.suggested_structure}</div></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<p class="tiny-label">🖋️ 擬答作答區</p>', unsafe_allow_html=True)
@@ -294,13 +291,12 @@ with tab3:
     f1, f2 = st.columns([1, 1])
     with f1: st.markdown(f'<span class="word-count-badge">📝 當前字數：{len(ans_input)}</span>', unsafe_allow_html=True)
     with f2:
-        if st.button("⚖️ 提交閱卷評分 (依據校準文本)", use_container_width=True):
+        if st.button("⚖️ 提交閱卷評分", use_container_width=True):
             if ans_input:
                 st.markdown("### ⚖️ 專業評閱意見")
-                eval_prompt = f"題目：{st.session_state.current_q}\n校準參考：{ref_text_sim}\n考生擬答：{ans_input}\n請依據校準文本精準評分（滿分25），指出優點與待改進之處，若不符法規請嚴格指正。"
+                eval_prompt = f"題目：{st.session_state.current_q}\n校準參考：{ref_text_sim}\n考生擬答：{ans_input}\n請依據校準文本精準評分（滿分25），指出優點與待改進之處。"
                 final_feedback = stream_generate(eval_prompt)
                 st.session_state.feedback = final_feedback
-                
                 score_match = re.search(r"(\d+)/25", final_feedback)
                 score_val = score_match.group(1) if score_match else "N/A"
                 log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, final_feedback)
