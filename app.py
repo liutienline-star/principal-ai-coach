@@ -35,6 +35,7 @@ st.markdown("""
         font-weight: 500; font-size: 1.8rem; margin-bottom: 1.5rem; letter-spacing: 0.05rem;
     }
 
+    /* 試題與建議框 */
     .scroll-box { 
         height: auto; min-height: 120px; overflow-y: auto; 
         border: 1px solid #3b4252; padding: 25px; 
@@ -44,21 +45,21 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
     }
 
+    /* 控制生成內容標題大小 */
+    .stMarkdown h4 {
+        font-size: 1.05rem !important;
+        font-weight: 500 !important;
+        color: #88c0d0 !important;
+        margin-top: 18px !important;
+        border-bottom: 1px solid #3b4252;
+        padding-bottom: 5px;
+    }
+
     .guide-box-wide {
         background: rgba(129, 161, 193, 0.05); 
         border-left: 3px solid #5e81ac; 
         padding: 25px; border-radius: 8px; margin-top: 15px; 
         font-size: 1.0rem; color: #d8dee9; line-height: 1.9;
-    }
-
-    /* 建議架構專用樣式 */
-    .suggestion-content h4 {
-        font-size: 1.0rem !important;
-        font-weight: 400 !important;
-        color: #88c0d0 !important;
-        margin-top: 15px !important;
-        border-bottom: 1px solid #3b4252;
-        padding-bottom: 5px;
     }
 
     /* 作答區高度 650px */
@@ -81,7 +82,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. 狀態與資源初始化 ---
+# --- 2. 初始化 ---
 if "init_done" not in st.session_state:
     st.session_state.update({"password_correct": False, "current_q": "", "suggested_structure": "", "start_time": None})
 
@@ -139,9 +140,9 @@ if not st.session_state["password_correct"]:
             else: st.error("密碼錯誤。")
     st.stop()
 
-# --- 4. 主程式分頁 ---
+# --- 4. 主分頁 ---
 st.markdown('<h1 class="main-header">🏫 體育課程研究室</h1>', unsafe_allow_html=True)
-tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍️ 實戰模擬", "📊 歷程紀錄"])
+tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 戰略矩陣", "✍️ 實戰模擬", "📊 歷程紀錄"])
 
 with tab1:
     st.markdown("### 📍 權威資訊導引")
@@ -156,14 +157,27 @@ with tab1:
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
     note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之韌性領導", key="nt_t2")
-    ref_text_note = st.text_area("法規參考文本：", height=100, placeholder="貼上最新法規確保筆記正確...", key="rt_t2")
+    
+    with st.expander("⚖️ 法規/理論參考文本 (點擊展開/縮放)"):
+        ref_text_note = st.text_area("輸入參考文本：", height=200, placeholder="貼上最新法規或核心理論確保矩陣正確性...", key="rt_t2", label_visibility="collapsed")
+    
     if st.button("📖 生成行政戰略架構"):
         if note_t:
-            p = f"主題：{note_t}\n參考文本：{ref_text_note}\n請依據行政實務撰寫包含前言、內涵、KPI表格(Markdown格式)、結語的戰略筆記。"
+            p = f"""主題：{note_t}
+            參考文本：{ref_text_note}
+            指令：請撰寫具備行政專業格局的戰略筆記，嚴格遵守以下格式，且標題請使用 #### (小標)：
+            #### 一、前言
+            描述該專題在當前教育脈動下的重要性。
+            #### 二、提供學理
+            列出此專題適用的行政理論（如：韌性領導、權變理論、社會情緒學習等）。
+            #### 三、行動矩陣 (Who, What, How)
+            請使用 Markdown 表格呈現行動矩陣，欄位包含：對象(Who)、行動方案(What)、執行細節(How)。
+            #### 四、結語
+            總結願景與預期成效。"""
             stream_generate(p)
 
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>校準機制已啟動：</strong> 系統將依據您提供的法規文本進行精準命題與閱卷。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>校準機制已啟動：</strong> 系統將依據您提供的法規文本進行精準命題。</div>""", unsafe_allow_html=True)
     
     THEME_POOL = {
         "🏆 領導願景與品牌經營": "桃園教育願景、品牌學校形塑、ESG永續經營、韌性領導。",
@@ -195,7 +209,6 @@ with tab3:
     q_container = st.container()
     if gen_btn:
         target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-        # 一體化命題 Prompt
         p = f"""你現在是評鑑委員。請針對『{target}』參考法規『{ref_text_sim}』設計一則約 150-200 字的情境申論題。
         要求：敘述必須一體化，將情境與核心提問融入單一段落，禁止條列格式。直接輸出題目。"""
         with q_container:
@@ -205,7 +218,6 @@ with tab3:
     elif st.session_state.current_q:
         q_container.markdown(f'<div class="scroll-box">{st.session_state.current_q}</div>', unsafe_allow_html=True)
 
-    # 黃金架構 (📍🏗️🌟)
     if st.session_state.current_q:
         if st.button("💡 獲取黃金架構建議"):
             with st.expander("🏆 行政專業答題架構", expanded=True):
