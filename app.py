@@ -10,62 +10,64 @@ import re
 # 1. 頁面基本設定
 st.set_page_config(page_title="體育課程研究室", layout="wide", page_icon="🏫")
 
-# --- 🎨 CSS 視覺優化 (北歐護眼配色 / 減壓排版) ---
+# --- 🎨 CSS 視覺優化 (北歐護眼配色 / 寬版垂直流配置) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
     
-    /* 全局字體設定：更輕盈，行距更寬 */
+    /* 全局字體設定 */
     html, body, [class*="css"] { 
         font-family: 'Noto Sans TC', sans-serif; 
-        font-weight: 300; /* 預設使用細體 */
+        font-weight: 300; 
         letter-spacing: 0.02em;
     }
     
-    .stApp { background-color: #1a1d24; color: #eceff4; } /* 背景更深，文字銀灰 */
+    .stApp { background-color: #1a1d24; color: #eceff4; }
 
-    /* 主標題：縮小、冷色調漸層 */
+    /* 主標題 */
     .main-header {
         background: linear-gradient(120deg, #eceff4 0%, #81a1c1 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 500; /* 降低粗度 */
-        font-size: 1.8rem; /* 縮小字號 */
+        font-weight: 500;
+        font-size: 1.8rem;
         margin-bottom: 1.0rem;
         letter-spacing: 0.05rem;
     }
 
-    /* 閱讀/試題區塊：深灰藍底，護眼低對比 */
+    /* 試題區塊 (改為寬版，高度適度縮減以利下方書寫) */
     .scroll-box { 
-        height: 520px !important; 
+        height: 300px !important; /* 寬版時高度不需要太高，方便同時看題目與作答 */
         overflow-y: auto !important; 
-        border: 1px solid #3b4252; /* 柔和邊框 */
-        padding: 30px; 
+        border: 1px solid #3b4252; 
+        padding: 25px; 
         border-radius: 12px; 
-        background: #242933; /* 舒適的深灰色 */
+        background: #242933; 
         color: #e5e9f0; 
-        line-height: 1.85; /* 增加行高，閱讀不累 */
+        line-height: 1.85; 
         font-size: 1.0rem; 
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
     }
 
-    /* 輸入框優化 */
+    /* 作答區優化 (加高高度) */
     div[data-baseweb="textarea"] textarea {
         color: #eceff4 !important; 
         font-size: 1.0rem !important; 
         line-height: 1.8 !important;
         font-weight: 300 !important;
     }
+    /* 強制設定作答區高度為 650px */
     div[data-baseweb="textarea"] > div {
-        height: 520px !important; 
+        height: 650px !important; 
         background-color: #242933 !important;
         border-radius: 12px !important; 
         border: 1px solid #3b4252 !important;
     }
 
-    /* --- 寬版建議區塊 (大幅修正：去除粗大字體) --- */
+    /* 寬版建議區塊 */
     .guide-box-wide {
-        background: rgba(129, 161, 193, 0.05); /* 極淡藍色背景 */
-        border-left: 3px solid #5e81ac; /* 左側藍色提示線 */
+        background: rgba(129, 161, 193, 0.05); 
+        border-left: 3px solid #5e81ac; 
         padding: 25px; 
         border-radius: 8px; 
         margin-top: 20px; 
@@ -74,21 +76,21 @@ st.markdown("""
         line-height: 1.9;
     }
     
-    /* 強制壓制 Markdown 標題的大小與粗度 */
+    /* 標題樣式壓制 */
     .guide-box-wide h1, .guide-box-wide h2, .guide-box-wide h3 {
-        font-size: 1.15rem !important; /* 很克制的標題大小 */
-        font-weight: 500 !important;   /* 不再粗體 */
+        font-size: 1.15rem !important; 
+        font-weight: 500 !important;   
         margin-top: 15px !important;
         margin-bottom: 10px !important;
-        color: #88c0d0 !important;     /* 柔和的水藍色標題 */
-        border: none !important;       /* 移除不必要的線條 */
+        color: #88c0d0 !important;     
+        border: none !important;       
     }
     .guide-box-wide strong {
-        color: #81a1c1; /* 粗體文字改為柔和藍，而非刺眼白 */
+        color: #81a1c1; 
         font-weight: 500;
     }
 
-    /* 小標籤與按鈕 */
+    /* 標籤與按鈕 */
     .tiny-label { font-size: 0.8rem !important; color: #69788e; margin-bottom: 6px; font-weight: 400; }
     
     .stButton>button { 
@@ -104,7 +106,6 @@ st.markdown("""
         border-color: #88c0d0; 
     }
 
-    /* 特殊元件 */
     .timer-mini { font-size: 1.2rem; font-weight: 500; color: #bf616a; background: rgba(191, 97, 106, 0.1); padding: 6px 12px; border-radius: 6px; }
     .word-count-badge { background: #2e3440; color: #8fbcbb; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #434c5e; }
     </style>
@@ -208,8 +209,9 @@ with tab2:
                 """
                 st.markdown(model.generate_content(prompt_t2).text)
 
-# --- Tab 3: 實戰模擬 (護眼優化版) ---
+# --- Tab 3: 實戰模擬 (垂直寬版流) ---
 with tab3:
+    # 上方控制列保持不變
     c_timer_btn, c_timer_val, c_select, c_input, c_gen = st.columns([0.8, 1, 1.5, 2, 0.8])
     with c_timer_btn:
         st.markdown('<p class="tiny-label">⏱️ 計時器</p>', unsafe_allow_html=True)
@@ -246,41 +248,43 @@ with tab3:
                     st.session_state.suggested_structure = None
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # --- 1. 題目顯示區 (全寬) ---
+    st.markdown('<p class="tiny-label">📍 模擬試題視窗 (Full Width)</p>', unsafe_allow_html=True)
+    st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題將顯示於此，請按上方生成按鈕...")}</div>', unsafe_allow_html=True)
     
-    col_q, col_a = st.columns([1, 1.8], gap="large")
-    
-    with col_q:
-        st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
-        st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題顯示於此...")}</div>', unsafe_allow_html=True)
-        
-        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-        
-        if st.session_state.get("current_q") and st.button("💡 獲取架構建議 (顯示於下方)", use_container_width=True):
+    # 架構按鈕 (置於題目與作答區之間)
+    if st.session_state.get("current_q"):
+        if st.button("💡 獲取黃金架構建議 (將顯示於下方)", use_container_width=True):
             with st.spinner("分析架構中..."):
                 struct_prompt = f"針對此題：{st.session_state.current_q}，請提供「黃金三段式」答題架構建議，並特別指出可運用的理論。"
                 st.session_state.suggested_structure = model.generate_content(struct_prompt).text
-
-    with col_a:
-        st.markdown('<p class="tiny-label">🖋️ 擬答作答區</p>', unsafe_allow_html=True)
-        ans_input = st.text_area("作答", label_visibility="collapsed", key="v11_ans", height=500)
-        f_count, f_submit = st.columns([1, 1])
-        with f_count: st.markdown(f'<span class="word-count-badge">📝 字數：{len(ans_input)}</span>', unsafe_allow_html=True)
-        with f_submit:
-            if st.button("⚖️ 提交閱卷評分", use_container_width=True):
-                if model and ans_input:
-                    with st.spinner("評分中..."):
-                        res = model.generate_content(f"題目：{st.session_state.current_q}\n擬答：{ans_input}\n給予評分(滿分25)與具體建議。").text
-                        st.session_state.feedback = res
-                        score_match = re.search(r"(\d+)/25", res)
-                        log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_match.group(1) if score_match else "N/A", ans_input, res)
-
-    # --- 寬版架構建議區 (護眼模式) ---
+    
+    # 顯示架構 (若有)
     if st.session_state.get("suggested_structure"):
-        st.markdown("---")
-        st.markdown("### 💡 答題架構導航")
-        st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
+         st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
 
-    # --- 評分結果區 ---
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+
+    # --- 2. 作答區 (全寬 + 加高) ---
+    st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (Expanded)</p>', unsafe_allow_html=True)
+    # 高度已由 CSS data-baseweb 強制設定為 650px
+    ans_input = st.text_area("作答", label_visibility="collapsed", key="v11_ans") 
+    
+    # 底部工具列
+    f_count, f_submit = st.columns([1, 1])
+    with f_count: 
+        st.markdown(f'<div style="margin-top:10px;"><span class="word-count-badge">📝 字數：{len(ans_input)}</span></div>', unsafe_allow_html=True)
+    with f_submit:
+        if st.button("⚖️ 提交閱卷評分", use_container_width=True):
+            if model and ans_input:
+                with st.spinner("評分中..."):
+                    res = model.generate_content(f"題目：{st.session_state.current_q}\n擬答：{ans_input}\n給予評分(滿分25)與具體建議。").text
+                    st.session_state.feedback = res
+                    score_match = re.search(r"(\d+)/25", res)
+                    log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_match.group(1) if score_match else "N/A", ans_input, res)
+
+    # --- 3. 評分結果區 ---
     if 'feedback' in st.session_state:
         st.markdown(f"<div style='margin-top:20px; padding:20px; background:#242933; border-radius:8px; border-left:4px solid #88c0d0; line-height:1.8; color:#e5e9f0;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
 
