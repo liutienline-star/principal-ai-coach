@@ -8,7 +8,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import re
 
 # --- 1. 系統層級設定 ---
-st.set_page_config(page_title="體育課程研究室 (Debug版)", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="體育課程研究室 (智能選模版)", layout="wide", page_icon="🏫")
 
 # --- 2. CSS 視覺收納 (Max-Width 1150px) ---
 st.markdown("""
@@ -81,14 +81,43 @@ if "init_done" not in st.session_state:
         "timer_running": False
     })
 
-# --- 4. 資源初始化 (Flash + Retry 機制) ---
+# --- 4. 資源初始化 (自動偵測可用模型) ---
 @st.cache_resource(ttl=3600)
 def init_ai():
     try:
         genai.configure(api_key=st.secrets["gemini"]["api_key"])
-        return genai.GenerativeModel("gemini-1.5-flash")
+        
+        # [關鍵修正] 自動列出所有可用模型，避免 404 錯誤
+        available_models = []
+        try:
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    available_models.append(m.name)
+        except:
+            pass
+
+        # 策略：優先找 flash, 其次找 pro, 再沒有就拿第一個
+        target_model = "models/gemini-pro" # 預設保底
+        
+        if available_models:
+            # 優先搜尋 flash
+            flash_models = [m for m in available_models if "flash" in m]
+            # 其次搜尋 pro
+            pro_models = [m for m in available_models if "pro" in m]
+            
+            if flash_models:
+                target_model = flash_models[0]
+            elif pro_models:
+                target_model = pro_models[0]
+            else:
+                target_model = available_models[0]
+        
+        # 顯示當前使用的模型 (在後台 print，不影響前台)
+        print(f"Using Model: {target_model}")
+        return genai.GenerativeModel(target_model)
+
     except Exception as e:
-        st.error(f"API 初始化失敗: {e}")
+        st.error(f"API 初始化嚴重失敗: {e}")
         return None
 
 @st.cache_resource(ttl=3600)
@@ -104,17 +133,13 @@ def init_google_sheet():
 model = init_ai()
 sheet_conn = init_google_sheet()
 
-# --- 核心：萬用串流生成函式 (解決 Timeout 的關鍵) ---
+# --- 核心：萬用串流生成函式 ---
 def stream_generate(prompt_text, container=None):
-    """
-    使用串流模式生成內容，防止 Streamlit 斷線
-    container: 指定要渲染的 UI 區塊，若無則建立新區塊
-    """
+    """串流生成內容，防止 Timeout"""
     if not model: 
         st.error("AI 模型未連接")
         return ""
     
-    # 如果有指定容器就用容器，沒有就建立一個空位
     if container is None:
         placeholder = st.empty()
     else:
@@ -130,19 +155,17 @@ def stream_generate(prompt_text, container=None):
             request_options={'timeout': 600}
         )
         
-        # 一塊一塊接收資料，讓連線保持活躍
         for chunk in response:
             if chunk.text:
                 full_response += chunk.text
-                placeholder.markdown(full_response + "▌") # 加上游標效果
+                placeholder.markdown(full_response + "▌") 
         
-        placeholder.markdown(full_response) # 最後顯示完整版
+        placeholder.markdown(full_response)
         return full_response
 
     except Exception as e:
-        # 這裡會顯示真正的錯誤原因
-        st.error(f"❌ 發生錯誤 (Error Details): {e}")
-        return ""
+        st.error(f"❌ 生成中斷: {e}")
+        return full_response # 至少回傳已生成的內容
 
 # --- 資料寫入 ---
 def log_to_google_sheets(topic, score, user_answer, feedback):
@@ -220,7 +243,7 @@ with tab2:
             p = f"主題：{note_t}\n參考文本：{ref_text_note}\n請依據參考文本(若有)撰寫包含前言、內涵、KPI表格、結語的策略筆記。"
             stream_generate(p)
 
-# --- Tab 3 (實戰模擬 - 串流應用重點區) ---
+# --- Tab 3 ---
 with tab3:
     st.markdown("""
     <div class="alert-box">
@@ -248,12 +271,8 @@ with tab3:
     with st.expander("⚖️ 法規校準座 (貼入最新條文以校準 AI 閱卷標準)"):
         ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上最新的 SOP 或法規條文...", key="sim_ref")
 
-    # 顯示題目用的容器 (必須先佔位)
     st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
-    # 這裡我們用一個變數來控制是否要顯示之前存的，還是新的串流
-    question_box = st.empty()
-
-    # --- 命題生成區 (修正點：這裡原本沒有用 Stream，現在改用 stream_generate) ---
+    
     if gen_btn:
         target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
         q_prompt = f"""
@@ -265,27 +284,22 @@ with tab3:
         2. 情境 150 字內，需包含行政理論與實務任務。
         3. 直接輸出題目。
         """
-        # 使用串流生成，並顯示在 question_box
-        # 注意：我們把結果存回 session_state
+        # 使用串流生成並顯示
         with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
              st.session_state.current_q = stream_generate(q_prompt)
-        st.session_state.suggested_structure = None # 清空舊的建議
+        st.session_state.suggested_structure = None 
     else:
-        # 如果沒有按按鈕，就顯示舊的
         if st.session_state.get("current_q"):
              st.markdown(f'<div class="scroll-box">{st.session_state.current_q}</div>', unsafe_allow_html=True)
         else:
              st.markdown(f'<div class="scroll-box">請點擊生成試題...</div>', unsafe_allow_html=True)
 
-    # 架構建議 (串流)
     if st.session_state.get("current_q") and st.button("💡 獲取黃金架構建議"):
         st.markdown("### 建議架構：")
         s_prompt = f"題目：{st.session_state.current_q}\n校準參考：{ref_text_sim}\n請提供三段式答題建議。"
-        # 串流輸出並存檔
         res = stream_generate(s_prompt)
         st.session_state.suggested_structure = res
 
-    # 顯示已存在的架構建議
     if st.session_state.get("suggested_structure") and not gen_btn: 
          st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
 
@@ -305,24 +319,17 @@ with tab3:
                 【題目】：{st.session_state.current_q}
                 【正確法規依據（校準文本）】：{ref_text_sim}
                 【考生擬答】：{ans_input}
-                
                 指令：
                 1. 必須以「校準文本」為唯一的程序真理。若考生擬答與校準文本衝突，請扣分並指出錯誤。
                 2. 評分標準：滿分 25 分。
                 3. 給予具體建議。
                 """
-                
-                # --- 關鍵：評分使用串流 ---
                 final_feedback = stream_generate(eval_prompt)
                 st.session_state.feedback = final_feedback
                 
-                # 背景存檔
                 score_match = re.search(r"(\d+)/25", final_feedback)
                 score_val = score_match.group(1) if score_match else "N/A"
                 log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, final_feedback)
-
-    if st.session_state.get('feedback') and False: 
-        st.markdown(f"<div class='guide-box-wide' style='border-left:4px solid #88c0d0;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
 
 # --- Tab 4 ---
 with tab4:
