@@ -10,12 +10,13 @@ import re
 # 1. 頁面基本設定
 st.set_page_config(page_title="體育課程研究室", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 柔和化美編 ---
+# --- 🎨 核心 CSS 柔和化美編 (已微調間距，確保穩定不跑版) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
     html, body, [class*="css"] { font-family: 'Noto Sans TC', sans-serif; }
     .stApp { background-color: #1a1c23; color: #ced4da; }
+    
     .scroll-box { 
         height: 520px; 
         overflow-y: auto; 
@@ -27,17 +28,20 @@ st.markdown("""
         line-height: 1.8;
         font-size: 1.1rem;
         box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        margin-bottom: 25px; /* ✨ 修正：增加與下方按鈕的間距，避免擁擠 */
     }
-    /* 新增：架構建議方框樣式 */
+    
     .guide-box {
         background: rgba(233, 213, 161, 0.05);
         border: 1px dashed #a88e5a;
         padding: 15px;
         border-radius: 10px;
-        margin-top: 10px;
+        margin-top: 15px;
         font-size: 0.95rem;
         color: #e9d5a1;
+        line-height: 1.6;
     }
+    
     div[data-baseweb="textarea"] textarea {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
@@ -49,7 +53,7 @@ st.markdown("""
         border-radius: 16px !important;
         border: 1px solid rgba(193, 174, 148, 0.2) !important;
     }
-    .tiny-label { font-size: 0.88rem !important; color: #c1ae94; margin-bottom: 4px; font-weight: 500; }
+    .tiny-label { font-size: 0.88rem !important; color: #c1ae94; margin-bottom: 6px; font-weight: 500; }
     .main-header {
         background: linear-gradient(135deg, #e9d5a1 0%, #a88e5a 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -191,7 +195,7 @@ with tab3:
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
                     q_prompt = f"請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。主題：『{target_topic}』。格式：專業語言描述校園困境(約150字)，具備治理層級厚度。嚴禁開場白。"
                     st.session_state.current_q = model.generate_content(q_prompt).text
-                    st.session_state.suggested_structure = None # 重置建議
+                    st.session_state.suggested_structure = None
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_q, col_a = st.columns([1, 1.8], gap="medium")
@@ -199,7 +203,6 @@ with tab3:
         st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題將顯示於此...")}</div>', unsafe_allow_html=True)
         
-        # --- [功能 1] 黃金架構按鈕 ---
         if st.session_state.get("current_q"):
             if st.button("💡 獲取黃金答題架構建議", use_container_width=True):
                 with st.spinner("分析解題框架中..."):
@@ -217,7 +220,6 @@ with tab3:
             if st.button("⚖️ 提交召集人閱卷評分", use_container_width=True):
                 if model and ans_input:
                     with st.spinner("召集人正在進行關鍵字檢核與評分..."):
-                        # --- [功能 4] 強化關鍵字檢核的提示詞 ---
                         grading_p = f"""
                         你現在是「國中校長甄試閱卷召集人」。
                         題目：{st.session_state.get('current_q')}
@@ -230,7 +232,6 @@ with tab3:
                         """
                         res = model.generate_content(grading_p).text
                         st.session_state.feedback = res
-                        # 兼容原本的存檔分數抓取邏輯
                         score_match = re.search(r"總分評定：(\d+)", res)
                         score_val = score_match.group(1) if score_match else "N/A"
                         log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, res)
