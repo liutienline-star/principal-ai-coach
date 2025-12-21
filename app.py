@@ -34,9 +34,9 @@ st.markdown("""
         letter-spacing: 0.05rem;
     }
 
-    /* 試題區塊 (改為寬版，高度適度縮減以利下方書寫) */
+    /* 試題區塊 */
     .scroll-box { 
-        height: 300px !important; /* 寬版時高度不需要太高，方便同時看題目與作答 */
+        height: 300px !important; 
         overflow-y: auto !important; 
         border: 1px solid #3b4252; 
         padding: 25px; 
@@ -49,7 +49,7 @@ st.markdown("""
         margin-bottom: 15px;
     }
 
-    /* 作答區優化 (加高高度) */
+    /* 作答區優化 */
     div[data-baseweb="textarea"] textarea {
         color: #eceff4 !important; 
         font-size: 1.0rem !important; 
@@ -76,7 +76,6 @@ st.markdown("""
         line-height: 1.9;
     }
     
-    /* 標題樣式壓制 */
     .guide-box-wide h1, .guide-box-wide h2, .guide-box-wide h3 {
         font-size: 1.15rem !important; 
         font-weight: 500 !important;   
@@ -88,6 +87,17 @@ st.markdown("""
     .guide-box-wide strong {
         color: #81a1c1; 
         font-weight: 500;
+    }
+
+    /* 警示區塊 (用於法規提醒) */
+    .alert-box {
+        background: rgba(191, 97, 106, 0.1);
+        border: 1px solid #bf616a;
+        color: #e5e9f0;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
     }
 
     /* 標籤與按鈕 */
@@ -191,27 +201,69 @@ with tab1:
             with st.spinner("解析中..."):
                 st.markdown(model.generate_content(f"請以教育行政視角分析考點：\n{news_clip}").text)
 
-# --- Tab 2: 策略筆記 ---
+# --- Tab 2: 策略筆記 (✅ 升級：法規 Grounding 機制) ---
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
-    note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之韌性領導")
+    
+    # 新增警示說明
+    st.markdown("""
+    <div class="alert-box">
+    ⚠️ <strong>法規精準度提醒：</strong><br>
+    涉及「校事會議」、「霸凌防制」等具時效性法規，AI 可能存有舊版資料落差。<br>
+    建議在下方「參考文本」欄位貼上最新法規條文或 SOP，AI 將強制依據該文本生成筆記，確保精確度。
+    </div>
+    """, unsafe_allow_html=True)
+
+    c_topic, c_ref = st.columns([1, 1.5], gap="large")
+    
+    with c_topic:
+        st.markdown('<p class="tiny-label">📌 專題名稱</p>', unsafe_allow_html=True)
+        note_t = st.text_input("專題名稱", placeholder="例如：新制校事會議運作流程", label_visibility="collapsed")
+    
+    with c_ref:
+        st.markdown('<p class="tiny-label">⚖️ 法規/SOP 參考文本 (選填，強烈建議填寫)</p>', unsafe_allow_html=True)
+        ref_text = st.text_area("參考文本", height=100, placeholder="在此貼上最新法規條文、公文內容或研習講義...", label_visibility="collapsed")
+
     if st.button("📖 生成行政戰略架構"):
         if model and note_t:
-            with st.spinner("整理中..."):
-                prompt_t2 = f"""
-                請針對主題『{note_t}』，以教育行政專家的角度，撰寫一份結構完整的策略筆記。
+            with st.spinner("依據最新文本分析整理中..."):
                 
+                # 建構更嚴謹的 Prompt
+                base_instruction = f"""
+                請針對主題『{note_t}』，以教育行政專家的角度，撰寫一份結構完整的策略筆記。
+                """
+                
+                # 判斷是否有使用者提供的 Ground Truth
+                if ref_text.strip():
+                    grounding_instruction = f"""
+                    【重要指令】
+                    使用者已提供以下「參考文本」作為黃金準則 (Ground Truth)：
+                    ---
+                    {ref_text}
+                    ---
+                    請**嚴格依據**上述參考文本的內容來撰寫（特別是程序、天數、法條名稱）。
+                    若參考文本資訊不足，請標註「需參閱相關法規」，切勿自行編造不確定的數據。
+                    """
+                else:
+                    grounding_instruction = """
+                    【重要指令】
+                    由於使用者未提供參考文本，若涉及具體法規（如校事會議、霸凌防制），請務必以「目前最新修訂法規」為準。
+                    若不確定最新修訂細節，請在內容中加註「(建議再次查核最新教育局公文)」字樣。
+                    """
+
+                structure_instruction = """
                 內容**必須嚴格包含**以下四個明確章節，請使用 Markdown 格式：
                 1. **前言** (破題與背景)
-                2. **定義與內涵** (學理基礎)
+                2. **定義與內涵** (依據參考文本的學理或法理基礎)
                 3. **行動矩陣與KPI指標** (請務必使用 Markdown 表格呈現具體策略與衡量指標)
                 4. **結語** (展望與總結)
                 """
-                st.markdown(model.generate_content(prompt_t2).text)
+                
+                final_prompt = base_instruction + grounding_instruction + structure_instruction
+                st.markdown(model.generate_content(final_prompt).text)
 
 # --- Tab 3: 實戰模擬 (垂直寬版流) ---
 with tab3:
-    # 上方控制列保持不變
     c_timer_btn, c_timer_val, c_select, c_input, c_gen = st.columns([0.8, 1, 1.5, 2, 0.8])
     with c_timer_btn:
         st.markdown('<p class="tiny-label">⏱️ 計時器</p>', unsafe_allow_html=True)
@@ -239,7 +291,7 @@ with tab3:
                     q_prompt = f"""
                     你現在是「第29期校長甄試命題委員」。請針對『{target}』設計一題實務申論題。
                     嚴格執行以下規格：
-                    1. **情境精煉**：字數控制在 120-150 字，拒絕冗長。
+                    1. **情境精煉**：字數控制在 150-200 字，拒絕冗長。
                     2. **單一學理**：隨機隱含「一個」最適合的教育行政理論。
                     3. **結構**：情境描述 + 具體策略任務。
                     4. **輸出**：嚴禁開場白，直接輸出題目。
@@ -253,14 +305,12 @@ with tab3:
     st.markdown('<p class="tiny-label">📍 模擬試題視窗 (Full Width)</p>', unsafe_allow_html=True)
     st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題將顯示於此，請按上方生成按鈕...")}</div>', unsafe_allow_html=True)
     
-    # 架構按鈕 (置於題目與作答區之間)
     if st.session_state.get("current_q"):
         if st.button("💡 獲取黃金架構建議 (將顯示於下方)", use_container_width=True):
             with st.spinner("分析架構中..."):
                 struct_prompt = f"針對此題：{st.session_state.current_q}，請提供「黃金三段式」答題架構建議，並特別指出可運用的理論。"
                 st.session_state.suggested_structure = model.generate_content(struct_prompt).text
     
-    # 顯示架構 (若有)
     if st.session_state.get("suggested_structure"):
          st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
 
@@ -268,10 +318,8 @@ with tab3:
 
     # --- 2. 作答區 (全寬 + 加高) ---
     st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (Expanded)</p>', unsafe_allow_html=True)
-    # 高度已由 CSS data-baseweb 強制設定為 650px
     ans_input = st.text_area("作答", label_visibility="collapsed", key="v11_ans") 
     
-    # 底部工具列
     f_count, f_submit = st.columns([1, 1])
     with f_count: 
         st.markdown(f'<div style="margin-top:10px;"><span class="word-count-badge">📝 字數：{len(ans_input)}</span></div>', unsafe_allow_html=True)
