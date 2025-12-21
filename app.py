@@ -126,10 +126,10 @@ tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍
 with tab1:
     st.markdown("### 📍 權威資訊導引")
     c = st.columns(5) # 調整為 5 欄以容納新連結
-    links = [("🏛️ 教育部新聞", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
-             ("🏫 桃園教育局", "https://www.tyc.edu.tw/"),
-             ("📖 國家教育研究院", "https://www.naer.edu.tw/"),
-             ("🌟 臺灣教育評論", "http://www.ater.org.tw/commentmonth.html"),
+    links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
+             ("🏫 教育局", "https://www.tyc.edu.tw/"),
+             ("📖 國教院", "https://www.naer.edu.tw/"),
+             ("🌟 教育評論", "http://www.ater.org.tw/commentmonth.html"),
              ("✨ 親子天下", "https://www.parenting.com.tw/")]
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url)
