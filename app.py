@@ -28,6 +28,16 @@ st.markdown("""
         font-size: 1.1rem;
         box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
+    /* 新增：架構建議方框樣式 */
+    .guide-box {
+        background: rgba(233, 213, 161, 0.05);
+        border: 1px dashed #a88e5a;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 10px;
+        font-size: 0.95rem;
+        color: #e9d5a1;
+    }
     div[data-baseweb="textarea"] textarea {
         color: #ffffff !important;
         -webkit-text-fill-color: #ffffff !important;
@@ -80,14 +90,13 @@ def get_records():
         return pd.DataFrame(sheet.get_all_records())
     except: return pd.DataFrame()
 
-# --- 🔐 密碼保護 (防崩潰強化版) ---
+# --- 🔐 密碼保護 ---
 if "password_correct" not in st.session_state:
     st.markdown('<h1 class="main-header">🛡️ 體育課程研究室</h1>', unsafe_allow_html=True)
     col_p2 = st.columns([1,2,1])[1]
     with col_p2:
         pwd = st.text_input("🔑 請輸入行政通關密碼：", type="password")
         if st.button("啟動系統"):
-            # 使用 .get 預防 Secrets 讀取錯誤
             target_password = st.secrets.get("app_password")
             if target_password and pwd == target_password:
                 st.session_state["password_correct"] = True
@@ -125,7 +134,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍
 # --- Tab 1: 趨勢轉化 ---
 with tab1:
     st.markdown("### 📍 權威資訊導引")
-    c = st.columns(5) # 調整為 5 欄以容納新連結
+    c = st.columns(5)
     links = [("🏛️ 教育部", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
              ("🏫 教育局", "https://www.tyc.edu.tw/"),
              ("📖 國教院", "https://www.naer.edu.tw/"),
@@ -182,12 +191,23 @@ with tab3:
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
                     q_prompt = f"請參考「校長甄試筆試（第29期風格）」命製一題 25 分的申論題。主題：『{target_topic}』。格式：專業語言描述校園困境(約150字)，具備治理層級厚度。嚴禁開場白。"
                     st.session_state.current_q = model.generate_content(q_prompt).text
+                    st.session_state.suggested_structure = None # 重置建議
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_q, col_a = st.columns([1, 1.8], gap="medium")
     with col_q:
         st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題將顯示於此...")}</div>', unsafe_allow_html=True)
+        
+        # --- [功能 1] 黃金架構按鈕 ---
+        if st.session_state.get("current_q"):
+            if st.button("💡 獲取黃金答題架構建議", use_container_width=True):
+                with st.spinner("分析解題框架中..."):
+                    struct_p = f"針對題目：{st.session_state.current_q}\n請提供校長甄試『黃金三段式』架構建議：1. 前言破題、2. 中段核心策略(Who/What/How)、3. 結語願景。請簡潔條列。"
+                    st.session_state.suggested_structure = model.generate_content(struct_p).text
+            if st.session_state.get("suggested_structure"):
+                st.markdown(f'<div class="guide-box"><b>📌 答題架構指引：</b><br>{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
+
     with col_a:
         st.markdown('<p class="tiny-label">🖋️ 擬答作答區</p>', unsafe_allow_html=True)
         ans_input = st.text_area("作答區", label_visibility="collapsed", key="ans_box_final", height=500)
@@ -196,11 +216,23 @@ with tab3:
         with f_submit:
             if st.button("⚖️ 提交召集人閱卷評分", use_container_width=True):
                 if model and ans_input:
-                    with st.spinner("評分並備份中..."):
-                        grading_p = f"你現在是「國中校長甄試閱卷召集人」。題目：{st.session_state.get('current_q')}\n考生擬答：{ans_input}\n評分標準：問題洞察(/6)、系統領導(/7)、政策轉化(/6)、結構素養(/6)。總分25。提供評語、盲點、金句。"
+                    with st.spinner("召集人正在進行關鍵字檢核與評分..."):
+                        # --- [功能 4] 強化關鍵字檢核的提示詞 ---
+                        grading_p = f"""
+                        你現在是「國中校長甄試閱卷召集人」。
+                        題目：{st.session_state.get('current_q')}
+                        考生擬答：{ans_input}
+                        
+                        請提供：
+                        1. 評分指標：問題洞察(/6)、系統領導(/7)、政策轉化(/6)、結構素養(/6)。總分評定：(請給分/25)。
+                        2. 關鍵字落點分析：檢核是否包含『數位韌性、SEL、教育善好、ESG、SDGs、生生用平板、跨域整合』等詞彙，給予運用建議。
+                        3. 深度評語與優化建議。
+                        """
                         res = model.generate_content(grading_p).text
                         st.session_state.feedback = res
-                        score_val = re.search(r"總分評定：(\d+)", res).group(1) if re.search(r"總分評定：(\d+)", res) else "N/A"
+                        # 兼容原本的存檔分數抓取邏輯
+                        score_match = re.search(r"總分評定：(\d+)", res)
+                        score_val = score_match.group(1) if score_match else "N/A"
                         log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, res)
 
     if 'feedback' in st.session_state:
