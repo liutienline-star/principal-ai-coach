@@ -10,58 +10,103 @@ import re
 # 1. 頁面基本設定
 st.set_page_config(page_title="體育課程研究室", layout="wide", page_icon="🏫")
 
-# --- 🎨 CSS 強制排版加固 (520px 高度鎖定 / 香檳金配色 / 寬版閱讀優化) ---
+# --- 🎨 CSS 視覺優化 (北歐護眼配色 / 減壓排版) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Noto Sans TC', sans-serif; }
-    .stApp { background-color: #1e2128; color: #cbd5e0; }
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
+    
+    /* 全局字體設定：更輕盈，行距更寬 */
+    html, body, [class*="css"] { 
+        font-family: 'Noto Sans TC', sans-serif; 
+        font-weight: 300; /* 預設使用細體 */
+        letter-spacing: 0.02em;
+    }
+    
+    .stApp { background-color: #1a1d24; color: #eceff4; } /* 背景更深，文字銀灰 */
+
+    /* 主標題：縮小、冷色調漸層 */
     .main-header {
-        background: linear-gradient(135deg, #d4c19c 0%, #a88e5a 100%);
+        background: linear-gradient(120deg, #eceff4 0%, #81a1c1 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 700; font-size: 2.2rem; margin-bottom: 1.2rem;
+        font-weight: 500; /* 降低粗度 */
+        font-size: 1.8rem; /* 縮小字號 */
+        margin-bottom: 1.0rem;
+        letter-spacing: 0.05rem;
     }
+
+    /* 閱讀/試題區塊：深灰藍底，護眼低對比 */
     .scroll-box { 
-        height: 520px !important; overflow-y: auto !important; border: 1px solid rgba(212, 193, 156, 0.15); 
-        padding: 30px; border-radius: 18px; background: #282c37; color: #e2e8f0; 
-        line-height: 1.75; font-size: 1.05rem; box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        height: 520px !important; 
+        overflow-y: auto !important; 
+        border: 1px solid #3b4252; /* 柔和邊框 */
+        padding: 30px; 
+        border-radius: 12px; 
+        background: #242933; /* 舒適的深灰色 */
+        color: #e5e9f0; 
+        line-height: 1.85; /* 增加行高，閱讀不累 */
+        font-size: 1.0rem; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
+
+    /* 輸入框優化 */
     div[data-baseweb="textarea"] textarea {
-        color: #f1f5f9 !important; font-size: 1.05rem !important; line-height: 1.7 !important;
+        color: #eceff4 !important; 
+        font-size: 1.0rem !important; 
+        line-height: 1.8 !important;
+        font-weight: 300 !important;
     }
     div[data-baseweb="textarea"] > div {
-        height: 520px !important; background-color: #282c37 !important;
-        border-radius: 18px !important; border: 1px solid rgba(212, 193, 156, 0.15) !important;
+        height: 520px !important; 
+        background-color: #242933 !important;
+        border-radius: 12px !important; 
+        border: 1px solid #3b4252 !important;
     }
-    /* --- 優化後的寬版建議區塊 CSS --- */
+
+    /* --- 寬版建議區塊 (大幅修正：去除粗大字體) --- */
     .guide-box-wide {
-        background: rgba(212, 193, 156, 0.05); 
-        border: 1px dashed rgba(212, 193, 156, 0.3);
+        background: rgba(129, 161, 193, 0.05); /* 極淡藍色背景 */
+        border-left: 3px solid #5e81ac; /* 左側藍色提示線 */
         padding: 25px; 
-        border-radius: 12px; 
+        border-radius: 8px; 
         margin-top: 20px; 
-        font-size: 1.05rem; /* 字體適中 */
-        color: #d4c19c; 
-        line-height: 1.8;
+        font-size: 1.0rem; 
+        color: #d8dee9; 
+        line-height: 1.9;
     }
-    /* 強制縮小建議區塊內的標題大小，避免過大 */
+    
+    /* 強制壓制 Markdown 標題的大小與粗度 */
     .guide-box-wide h1, .guide-box-wide h2, .guide-box-wide h3 {
-        font-size: 1.3rem !important;
-        font-weight: 600 !important;
-        margin-top: 10px !important;
+        font-size: 1.15rem !important; /* 很克制的標題大小 */
+        font-weight: 500 !important;   /* 不再粗體 */
+        margin-top: 15px !important;
         margin-bottom: 10px !important;
-        color: #e2e8f0 !important;
-        border-left: 4px solid #d4c19c;
-        padding-left: 10px;
+        color: #88c0d0 !important;     /* 柔和的水藍色標題 */
+        border: none !important;       /* 移除不必要的線條 */
     }
-    .tiny-label { font-size: 0.85rem !important; color: #8e99a7; margin-bottom: 8px; font-weight: 500; }
+    .guide-box-wide strong {
+        color: #81a1c1; /* 粗體文字改為柔和藍，而非刺眼白 */
+        font-weight: 500;
+    }
+
+    /* 小標籤與按鈕 */
+    .tiny-label { font-size: 0.8rem !important; color: #69788e; margin-bottom: 6px; font-weight: 400; }
+    
     .stButton>button { 
-        border-radius: 10px; background-color: #2d323e; color: #d4c19c; 
-        border: 1px solid rgba(212, 193, 156, 0.25);
+        border-radius: 8px; 
+        background-color: #2e3440; 
+        color: #88c0d0; 
+        border: 1px solid #434c5e;
+        transition: all 0.3s ease;
     }
-    .stButton>button:hover { background-color: #d4c19c; color: #1a1c23; border-color: #d4c19c; }
-    .timer-mini { font-size: 1.3rem; font-weight: 600; color: #f5a9a9; background: rgba(245, 169, 169, 0.05); padding: 8px; border-radius: 10px; }
-    .word-count-badge { background: rgba(74, 124, 124, 0.15); color: #81e6d9; padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; }
+    .stButton>button:hover { 
+        background-color: #3b4252; 
+        color: #eceff4; 
+        border-color: #88c0d0; 
+    }
+
+    /* 特殊元件 */
+    .timer-mini { font-size: 1.2rem; font-weight: 500; color: #bf616a; background: rgba(191, 97, 106, 0.1); padding: 6px 12px; border-radius: 6px; }
+    .word-count-badge { background: #2e3440; color: #8fbcbb; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #434c5e; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -145,18 +190,17 @@ with tab1:
             with st.spinner("解析中..."):
                 st.markdown(model.generate_content(f"請以教育行政視角分析考點：\n{news_clip}").text)
 
-# --- Tab 2: 策略筆記 (✅ 已升級：黃金四段式結構) ---
+# --- Tab 2: 策略筆記 ---
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
     note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之韌性領導")
     if st.button("📖 生成行政戰略架構"):
         if model and note_t:
             with st.spinner("整理中..."):
-                # --- 升級後的 Prompt 指令 ---
                 prompt_t2 = f"""
                 請針對主題『{note_t}』，以教育行政專家的角度，撰寫一份結構完整的策略筆記。
                 
-                內容**必須嚴格包含**以下四個明確章節：
+                內容**必須嚴格包含**以下四個明確章節，請使用 Markdown 格式：
                 1. **前言** (破題與背景)
                 2. **定義與內涵** (學理基礎)
                 3. **行動矩陣與KPI指標** (請務必使用 Markdown 表格呈現具體策略與衡量指標)
@@ -164,7 +208,7 @@ with tab2:
                 """
                 st.markdown(model.generate_content(prompt_t2).text)
 
-# --- Tab 3: 實戰模擬 (版面與結構優化版) ---
+# --- Tab 3: 實戰模擬 (護眼優化版) ---
 with tab3:
     c_timer_btn, c_timer_val, c_select, c_input, c_gen = st.columns([0.8, 1, 1.5, 2, 0.8])
     with c_timer_btn:
@@ -188,7 +232,7 @@ with tab3:
         st.markdown('<p class="tiny-label">🚀 命題</p>', unsafe_allow_html=True)
         if st.button("生成試題", use_container_width=True):
             if model:
-                with st.spinner("擬真命題中 (第29期風格)..."):
+                with st.spinner("擬真命題中..."):
                     target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
                     q_prompt = f"""
                     你現在是「第29期校長甄試命題委員」。請針對『{target}』設計一題實務申論題。
@@ -203,17 +247,15 @@ with tab3:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 左右欄位佈局
     col_q, col_a = st.columns([1, 1.8], gap="large")
     
     with col_q:
         st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題顯示於此...")}</div>', unsafe_allow_html=True)
         
-        # 增加間距 (Spacer)
         st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
         
-        if st.session_state.get("current_q") and st.button("💡 獲取黃金架構建議 (顯示於下方)", use_container_width=True):
+        if st.session_state.get("current_q") and st.button("💡 獲取架構建議 (顯示於下方)", use_container_width=True):
             with st.spinner("分析架構中..."):
                 struct_prompt = f"針對此題：{st.session_state.current_q}，請提供「黃金三段式」答題架構建議，並特別指出可運用的理論。"
                 st.session_state.suggested_structure = model.generate_content(struct_prompt).text
@@ -232,7 +274,7 @@ with tab3:
                         score_match = re.search(r"(\d+)/25", res)
                         log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_match.group(1) if score_match else "N/A", ans_input, res)
 
-    # --- 寬版架構建議區 (獨立顯示) ---
+    # --- 寬版架構建議區 (護眼模式) ---
     if st.session_state.get("suggested_structure"):
         st.markdown("---")
         st.markdown("### 💡 答題架構導航")
@@ -240,7 +282,7 @@ with tab3:
 
     # --- 評分結果區 ---
     if 'feedback' in st.session_state:
-        st.markdown(f"<div style='margin-top:20px; padding:20px; background:#2d323e; border-radius:12px; border-left:5px solid #d4c19c;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='margin-top:20px; padding:20px; background:#242933; border-radius:8px; border-left:4px solid #88c0d0; line-height:1.8; color:#e5e9f0;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
 
 # --- Tab 4: 歷程紀錄 ---
 with tab4:
