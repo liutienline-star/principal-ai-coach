@@ -7,7 +7,7 @@ import time
 # 1. 頁面基本設定
 st.set_page_config(page_title="體育課程研究室", layout="wide", page_icon="🏫")
 
-# --- 🎨 核心 CSS 柔和化美編 ---
+# --- 🎨 核心 CSS 柔和化美編 (字體顏色強化版) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap');
@@ -15,10 +15,10 @@ st.markdown("""
     /* 全域設定 */
     html, body, [class*="css"] { font-family: 'Noto Sans TC', sans-serif; }
     
-    /* 背景改為深石板藍，比純黑更耐看 */
+    /* 背景改為深石板藍 */
     .stApp { background-color: #1a1c23; color: #ced4da; }
     
-    /* 核心試題視窗 (左側題目區) - 邊框改為柔和的莫蘭迪金 */
+    /* 核心試題視窗 (左側題目區) */
     .scroll-box { 
         height: 520px; 
         overflow-y: auto; 
@@ -32,19 +32,24 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     }
 
-    /* 強制調整 Streamlit text_area 高度 */
+    /* --- ✍️ 擬答作答區字體顏色調整為純白 --- */
+    div[data-baseweb="textarea"] textarea {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important; /* 確保在不同瀏覽器均為純白 */
+        font-size: 1.1rem !important;
+    }
+    
     div[data-baseweb="textarea"] > div {
         height: 520px !important;
         background-color: #232731 !important;
         border-radius: 16px !important;
         border: 1px solid rgba(193, 174, 148, 0.2) !important;
-        color: #e9ecef !important;
     }
 
     /* 頂部功能列文字 */
     .tiny-label {
         font-size: 0.88rem !important;
-        color: #c1ae94; /* 沉穩金 */
+        color: #c1ae94; 
         margin-bottom: 4px;
         font-weight: 500;
         letter-spacing: 0.5px;
@@ -127,7 +132,7 @@ model = init_ai()
 
 # --- 3. 向度池 ---
 THEME_POOL = {
-    "🏆 領導願景與品牌經營": "桃園「教育善好」願景、品牌學校形塑、ESG 永續經營、韌性領導。",
+    "🏆 領導願景與 brand 品牌經營": "桃園「教育善好」願景、品牌學校形塑、ESG 永續經營、韌性領導。",
     "📘 課程發展與新課綱領航": "108 課綱深綱、雙語教育、SDGs 國際教育、跨域課程整合能力。",
     "📖 教學領航與數位轉型": "GenAI 教學應用倫理、數位公民素養、教師 PLC 運作實務、生生用平板 2.0。",
     "⚖️ 法理實務與危機處理": "校事會議、霸凌防制條例新制、性平法實務、親師衝突溝通策略。",
@@ -269,7 +274,7 @@ with tab3:
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題將顯示於此...")}</div>', unsafe_allow_html=True)
 
     with col_a:
-        st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (與左側高度同步)</p>', unsafe_allow_html=True)
+        st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (文字已改為純白)</p>', unsafe_allow_html=True)
         ans_input = st.text_area("作答區", label_visibility="collapsed", key="ans_box_final", placeholder="請依照：一、核心理念；二、執行策略；三、預期成效之架構書寫...")
         
         f_count, f_submit = st.columns([1, 1])
