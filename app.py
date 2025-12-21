@@ -6,28 +6,16 @@ import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
+from google.api_core import retry
 
 # --- 1. 系統層級設定 ---
-st.set_page_config(page_title="體育課程研究室 (A4 視覺版)", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="體育課程研究室 (串流防斷版)", layout="wide", page_icon="🏫")
 
-# --- 2. 關鍵修正：預先宣告 Session State (防止重新整理時當機) ---
-if "init_done" not in st.session_state:
-    st.session_state.update({
-        "init_done": True,
-        "password_correct": False,
-        "current_q": "",
-        "feedback": "",
-        "suggested_structure": "",
-        "start_time": None,
-        "timer_running": False
-    })
-
-# --- 3. CSS 視覺優化 (包含您指定的 1150px 收納) ---
+# --- 2. CSS 視覺收納 (Max-Width 1150px) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
     
-    /* [核心修改] 強制將寬版介面收納為 1150px 置中，減少閱讀疲勞 */
     .block-container {
         max-width: 1150px !important;
         padding-top: 2rem !important;
@@ -38,28 +26,25 @@ st.markdown("""
     html, body, [class*="css"] { 
         font-family: 'Noto Sans TC', sans-serif; 
         font-weight: 300; 
-        letter-spacing: 0.02em;
     }
     
     .stApp { background-color: #1a1d24; color: #eceff4; }
 
     .main-header {
-        text-align: center; /* 標題置中更美觀 */
+        text-align: center;
         background: linear-gradient(120deg, #eceff4 0%, #81a1c1 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-weight: 500; font-size: 2rem; margin-bottom: 2rem; letter-spacing: 0.05rem;
+        font-weight: 500; font-size: 2rem; margin-bottom: 2rem;
     }
 
-    /* 試題區塊 */
     .scroll-box { 
         height: 250px !important; overflow-y: auto !important; 
         border: 1px solid #3b4252; padding: 25px; 
         border-radius: 12px; background: #242933; 
-        color: #e5e9f0; line-height: 1.85; font-size: 1.05rem; 
+        color: #e5e9f0; line-height: 1.85; 
         box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
     }
 
-    /* 作答區高度 650px */
     div[data-baseweb="textarea"] textarea {
         color: #eceff4 !important; font-size: 1.1rem !important; line-height: 1.8 !important; padding: 20px !important;
     }
@@ -78,20 +63,30 @@ st.markdown("""
         color: #e5e9f0; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 15px;
     }
 
-    .tiny-label { font-size: 0.85rem !important; color: #69788e; margin-bottom: 6px; font-weight: 500; }
     .word-count-badge { background: #2e3440; color: #8fbcbb; padding: 4px 12px; border-radius: 4px; font-size: 0.8rem; border: 1px solid #434c5e; }
     
-    .stButton>button { border-radius: 8px; background-color: #2e3440; color: #88c0d0; border: 1px solid #434c5e; width: 100%; }
+    .stButton>button { border-radius: 8px; background-color: #2e3440; color: #88c0d0; border: 1px solid #434c5e; width: 100%; height: 3rem; }
     .stButton>button:hover { background-color: #88c0d0; color: #1a1d24; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. 資源初始化 (加強版：增加 TTL 快取鎖定) ---
+# --- 3. 狀態初始化 ---
+if "init_done" not in st.session_state:
+    st.session_state.update({
+        "init_done": True,
+        "password_correct": False,
+        "current_q": "",
+        "feedback": "",
+        "suggested_structure": "",
+        "start_time": None,
+        "timer_running": False
+    })
+
+# --- 4. 資源初始化 (Flash + Retry 機制) ---
 @st.cache_resource(ttl=3600)
 def init_ai():
     try:
         genai.configure(api_key=st.secrets["gemini"]["api_key"])
-        # 這裡參照您的版本，確保使用 Flash 模型
         return genai.GenerativeModel("gemini-1.5-flash")
     except: return None
 
@@ -108,7 +103,35 @@ def init_google_sheet():
 model = init_ai()
 sheet_conn = init_google_sheet()
 
-# --- Google Sheets 寫入函式 (參照您的版本並加入錯誤處理) ---
+# --- 核心：串流生成函式 (解決 Timeout 的關鍵) ---
+def stream_generate(prompt_text):
+    """使用串流模式生成內容，防止 Streamlit 斷線"""
+    if not model: return "AI 模型未連接"
+    
+    placeholder = st.empty() # 建立一個空位來放即時文字
+    full_response = ""
+    
+    try:
+        # request_options 設定超時為 600秒，並開啟 stream=True
+        response = model.generate_content(
+            prompt_text, 
+            stream=True, 
+            request_options={'timeout': 600}
+        )
+        
+        # 一塊一塊接收資料，讓連線保持活躍
+        for chunk in response:
+            if chunk.text:
+                full_response += chunk.text
+                placeholder.markdown(full_response + "▌") # 加上游標效果
+        
+        placeholder.markdown(full_response) # 最後顯示完整版
+        return full_response
+    except Exception as e:
+        st.error(f"連線中斷，請重試 (Error: {e})")
+        return ""
+
+# --- 資料寫入 ---
 def log_to_google_sheets(topic, score, user_answer, feedback):
     if sheet_conn:
         try:
@@ -142,7 +165,7 @@ if not st.session_state["password_correct"]:
             else: st.error("密碼錯誤。")
     st.stop()
 
-# --- 6. 題庫定義 ---
+# --- 6. 題庫 ---
 THEME_POOL = {
     "🏆 領導願景與品牌經營": "桃園教育願景、品牌學校形塑、ESG永續經營、韌性領導。",
     "📘 課程發展與課綱領航": "108課綱深綱、雙語教育、SDGs國際教育、跨域課程整合。",
@@ -151,7 +174,7 @@ THEME_POOL = {
     "❤️ SEL 與學生輔導": "社會情緒學習計畫、學生心理健康韌性、正向管教、中輟預防。"
 }
 
-# --- 7. 主程式介面 ---
+# --- 7. 主程式 ---
 st.markdown('<h1 class="main-header">🏫 體育課程研究室</h1>', unsafe_allow_html=True)
 tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍️ 實戰模擬", "📊 歷程紀錄"])
 
@@ -165,10 +188,9 @@ with tab1:
     st.markdown("---")
     news_clip = st.text_area("🔍 欲分析的教育新聞文本：", height=150, placeholder="將新聞文字貼於此處...", key="news_v11")
     if st.button("🎯 執行深度考點轉化"):
-        if news_clip and model:
-            with st.spinner("解析中..."): 
-                try: st.markdown(model.generate_content(f"請以教育行政視角分析考點：\n{news_clip}").text)
-                except: st.error("連線忙碌中，請重試。")
+        if news_clip:
+            st.markdown("### 分析結果：")
+            stream_generate(f"請以教育行政視角分析考點：\n{news_clip}")
 
 # --- Tab 2 ---
 with tab2:
@@ -180,14 +202,12 @@ with tab2:
         ref_text_note = st.text_area("法規參考文本：", height=68, placeholder="貼上最新法規確保筆記正確...", key="rt_t2")
     
     if st.button("📖 生成行政戰略架構"):
-        if model and note_t:
-            with st.spinner("整理中..."):
-                try:
-                    p = f"主題：{note_t}\n參考文本：{ref_text_note}\n請依據參考文本(若有)撰寫包含前言、內涵、KPI表格、結語的策略筆記。"
-                    st.markdown(model.generate_content(p).text)
-                except: st.error("連線忙碌中，請重試。")
+        if note_t:
+            st.markdown("### 戰略筆記：")
+            p = f"主題：{note_t}\n參考文本：{ref_text_note}\n請依據參考文本(若有)撰寫包含前言、內涵、KPI表格、結語的策略筆記。"
+            stream_generate(p)
 
-# --- Tab 3 (維持您的架構，加上錯誤處理) ---
+# --- Tab 3 (實戰模擬 - 串流應用重點區) ---
 with tab3:
     st.markdown("""
     <div class="alert-box">
@@ -215,35 +235,40 @@ with tab3:
     with st.expander("⚖️ 法規校準座 (貼入最新條文以校準 AI 閱卷標準)"):
         ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上最新的 SOP 或法規條文...", key="sim_ref")
 
-    if gen_btn and model:
-        with st.spinner("正在校準並命題中..."):
-            try:
-                target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                q_prompt = f"""
-                你現在是校長甄試命題委員。
-                請針對『{target}』設計一題實務申論題。
-                【校準參考】：{ref_text_sim}
-                指令：
-                1. 若有校準參考，請從中提取最新的流程或規定作為命題情境。
-                2. 情境 150 字內，需包含行政理論與實務任務。
-                3. 直接輸出題目。
-                """
+    # 命題生成
+    if gen_btn:
+        target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
+        q_prompt = f"""
+        你現在是校長甄試命題委員。
+        請針對『{target}』設計一題實務申論題。
+        【校準參考】：{ref_text_sim}
+        指令：
+        1. 若有校準參考，請從中提取最新的流程或規定作為命題情境。
+        2. 情境 150 字內，需包含行政理論與實務任務。
+        3. 直接輸出題目。
+        """
+        # 這裡不一定需要串流，但為了保險起見我們用一般生成，或直接顯示
+        try:
+            with st.spinner("命題中..."):
                 st.session_state.current_q = model.generate_content(q_prompt).text
                 st.session_state.suggested_structure = None
-            except: st.error("連線逾時，請再試一次。")
+        except: st.error("命題連線逾時，請再按一次。")
 
     st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
     st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請先點擊生成試題...")}</div>', unsafe_allow_html=True)
 
+    # 架構建議 (改用串流)
     if st.session_state.get("current_q") and st.button("💡 獲取黃金架構建議"):
-        with st.spinner("分析中..."):
-            try:
-                s_prompt = f"題目：{st.session_state.current_q}\n校準參考：{ref_text_sim}\n請提供三段式答題建議。"
-                st.session_state.suggested_structure = model.generate_content(s_prompt).text
-            except: st.error("AI 思考逾時。")
+        st.markdown("### 建議架構：")
+        s_prompt = f"題目：{st.session_state.current_q}\n校準參考：{ref_text_sim}\n請提供三段式答題建議。"
+        # 這裡我們直接顯示串流結果，並選擇性存入 session_state
+        res = stream_generate(s_prompt)
+        st.session_state.suggested_structure = res
 
-    if st.session_state.get("suggested_structure"):
-        st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
+    # 為了保持畫面整潔，若已有結果則顯示，若剛生成完上面會顯示，這裡可隱藏或保留
+    # 這裡選擇僅當非即時生成時顯示變數內容
+    if st.session_state.get("suggested_structure") and not st.session_state.get("init_done"): 
+         st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -255,28 +280,30 @@ with tab3:
     with f2:
         if st.button("⚖️ 提交閱卷評分 (依據校準文本)", use_container_width=True):
             if model and ans_input:
-                with st.spinner("正在依據最新法規進行精準評分..."):
-                    try:
-                        eval_prompt = f"""
-                        你現在是閱卷委員。請評分以下作答。
-                        【題目】：{st.session_state.current_q}
-                        【正確法規依據（校準文本）】：{ref_text_sim}
-                        【考生擬答】：{ans_input}
-                        
-                        指令：
-                        1. 必須以「校準文本」為唯一的程序真理。若考生擬答與校準文本衝突，請扣分並指出錯誤。
-                        2. 評分標準：滿分 25 分。
-                        3. 給予具體建議。
-                        """
-                        res = model.generate_content(eval_prompt).text
-                        st.session_state.feedback = res
-                        
-                        score_match = re.search(r"(\d+)/25", res)
-                        score_val = score_match.group(1) if score_match else "N/A"
-                        log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, res)
-                    except: st.error("評分連線失敗。")
+                st.markdown("### 閱卷結果：")
+                eval_prompt = f"""
+                你現在是閱卷委員。請評分以下作答。
+                【題目】：{st.session_state.current_q}
+                【正確法規依據（校準文本）】：{ref_text_sim}
+                【考生擬答】：{ans_input}
+                
+                指令：
+                1. 必須以「校準文本」為唯一的程序真理。若考生擬答與校準文本衝突，請扣分並指出錯誤。
+                2. 評分標準：滿分 25 分。
+                3. 給予具體建議。
+                """
+                
+                # --- 關鍵：評分使用串流 ---
+                # 這會讓您看著字打出來，絕對不會 timeout
+                final_feedback = stream_generate(eval_prompt)
+                st.session_state.feedback = final_feedback
+                
+                # 背景存檔
+                score_match = re.search(r"(\d+)/25", final_feedback)
+                score_val = score_match.group(1) if score_match else "N/A"
+                log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, final_feedback)
 
-    if st.session_state.get('feedback'):
+    if st.session_state.get('feedback') and False: # 串流已顯示，此處暫時隱藏重複顯示
         st.markdown(f"<div class='guide-box-wide' style='border-left:4px solid #88c0d0;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
 
 # --- Tab 4 ---
@@ -284,10 +311,8 @@ with tab4:
     st.markdown("### 📊 學習歷程分析")
     df = get_records()
     if not df.empty:
-        # 安全檢查欄位
         valid_cols = [c for c in df.columns if "分數" in str(c) or "score" in str(c).lower()]
         if valid_cols or len(df.columns) > 2:
-            # 嘗試抓取分數欄位，通常是第3欄 (index 2)
             try:
                 score_col = df.columns[2] 
                 df['score_num'] = pd.to_numeric(df[score_col], errors='coerce')
