@@ -10,7 +10,7 @@ import re
 # 1. 頁面基本設定
 st.set_page_config(page_title="體育課程研究室", layout="wide", page_icon="🏫")
 
-# --- 🎨 CSS 強制排版加固 (520px 高度鎖定 / 香檳金配色) ---
+# --- 🎨 CSS 強制排版加固 (520px 高度鎖定 / 香檳金配色 / 寬版閱讀優化) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
@@ -33,9 +33,26 @@ st.markdown("""
         height: 520px !important; background-color: #282c37 !important;
         border-radius: 18px !important; border: 1px solid rgba(212, 193, 156, 0.15) !important;
     }
-    .guide-box {
-        background: rgba(212, 193, 156, 0.05); border: 1px dashed rgba(212, 193, 156, 0.3);
-        padding: 18px; border-radius: 12px; margin-top: 10px; font-size: 0.95rem; color: #d4c19c;
+    /* --- 優化後的寬版建議區塊 CSS --- */
+    .guide-box-wide {
+        background: rgba(212, 193, 156, 0.05); 
+        border: 1px dashed rgba(212, 193, 156, 0.3);
+        padding: 25px; 
+        border-radius: 12px; 
+        margin-top: 20px; 
+        font-size: 1.05rem; /* 字體適中 */
+        color: #d4c19c; 
+        line-height: 1.8;
+    }
+    /* 強制縮小建議區塊內的標題大小，避免過大 */
+    .guide-box-wide h1, .guide-box-wide h2, .guide-box-wide h3 {
+        font-size: 1.3rem !important;
+        font-weight: 600 !important;
+        margin-top: 10px !important;
+        margin-bottom: 10px !important;
+        color: #e2e8f0 !important;
+        border-left: 4px solid #d4c19c;
+        padding-left: 10px;
     }
     .tiny-label { font-size: 0.85rem !important; color: #8e99a7; margin-bottom: 8px; font-weight: 500; }
     .stButton>button { 
@@ -84,13 +101,12 @@ if "password_correct" not in st.session_state:
             else: st.error("密碼錯誤。")
     st.stop()
 
-# --- 2. 核心 AI 初始化 (防 404 智能偵測) ---
+# --- 2. 核心 AI 初始化 ---
 @st.cache_resource
 def init_ai():
     try:
         genai.configure(api_key=st.secrets["gemini"]["api_key"])
         available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        # 優先尋找 flash 模型，若無則使用列表第一個
         target = next((m for m in available_models if "gemini-1.5-flash" in m), available_models[0])
         return genai.GenerativeModel(target)
     except: return None
@@ -110,10 +126,9 @@ THEME_POOL = {
 st.markdown('<h1 class="main-header">🏫 體育課程研究室</h1>', unsafe_allow_html=True)
 tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍️ 實戰模擬", "📊 歷程紀錄"])
 
-# --- Tab 1: 趨勢閱讀 (✅ 已補回：新聞來源連結按鈕) ---
+# --- Tab 1: 趨勢閱讀 ---
 with tab1:
     st.markdown("### 📍 權威資訊導引")
-    # 這裡就是之前遺漏的來源連結按鈕區
     c = st.columns(5)
     links = [("🏛️ 教育部", "https://www.edu.tw/"), 
              ("🏫 教育局", "https://www.tyc.edu.tw/"), 
@@ -139,7 +154,7 @@ with tab2:
             with st.spinner("整理中..."):
                 st.markdown(model.generate_content(f"針對『{note_t}』，提供行動矩陣與KPI指標。").text)
 
-# --- Tab 3: 實戰模擬 (✅ 已套用：第29期擬真命題引擎) ---
+# --- Tab 3: 實戰模擬 (版面與結構優化版) ---
 with tab3:
     c_timer_btn, c_timer_val, c_select, c_input, c_gen = st.columns([0.8, 1, 1.5, 2, 0.8])
     with c_timer_btn:
@@ -165,10 +180,8 @@ with tab3:
             if model:
                 with st.spinner("擬真命題中 (第29期風格)..."):
                     target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                    # --- 第29期風格命題 Prompt ---
                     q_prompt = f"""
                     你現在是「第29期校長甄試命題委員」。請針對『{target}』設計一題實務申論題。
-                    
                     嚴格執行以下規格：
                     1. **情境精煉**：字數控制在 120-150 字，拒絕冗長。
                     2. **單一學理**：隨機隱含「一個」最適合的教育行政理論。
@@ -179,14 +192,21 @@ with tab3:
                     st.session_state.suggested_structure = None
 
     st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 左右欄位佈局
     col_q, col_a = st.columns([1, 1.8], gap="large")
+    
     with col_q:
         st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
         st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "試題顯示於此...")}</div>', unsafe_allow_html=True)
-        if st.session_state.get("current_q") and st.button("💡 獲取架構建議", use_container_width=True):
-            st.session_state.suggested_structure = model.generate_content(f"提供此題架構建議 (含理論應用)：{st.session_state.current_q}").text
-        if st.session_state.get("suggested_structure"):
-            st.markdown(f'<div class="guide-box">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
+        
+        # 增加間距 (Spacer)
+        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+        
+        if st.session_state.get("current_q") and st.button("💡 獲取黃金架構建議 (顯示於下方)", use_container_width=True):
+            with st.spinner("分析架構中..."):
+                struct_prompt = f"針對此題：{st.session_state.current_q}，請提供「黃金三段式」答題架構建議，並特別指出可運用的理論。"
+                st.session_state.suggested_structure = model.generate_content(struct_prompt).text
 
     with col_a:
         st.markdown('<p class="tiny-label">🖋️ 擬答作答區</p>', unsafe_allow_html=True)
@@ -202,6 +222,13 @@ with tab3:
                         score_match = re.search(r"(\d+)/25", res)
                         log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_match.group(1) if score_match else "N/A", ans_input, res)
 
+    # --- 寬版架構建議區 (移出 col_q，改為獨立寬版) ---
+    if st.session_state.get("suggested_structure"):
+        st.markdown("---")
+        st.markdown("### 💡 答題架構導航")
+        st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
+
+    # --- 評分結果區 ---
     if 'feedback' in st.session_state:
         st.markdown(f"<div style='margin-top:20px; padding:20px; background:#2d323e; border-radius:12px; border-left:5px solid #d4c19c;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
 
