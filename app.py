@@ -6,10 +6,9 @@ import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
-from google.api_core import retry
 
 # --- 1. 系統層級設定 ---
-st.set_page_config(page_title="體育課程研究室 (串流防斷版)", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="體育課程研究室 (Debug版)", layout="wide", page_icon="🏫")
 
 # --- 2. CSS 視覺收納 (Max-Width 1150px) ---
 st.markdown("""
@@ -88,7 +87,9 @@ def init_ai():
     try:
         genai.configure(api_key=st.secrets["gemini"]["api_key"])
         return genai.GenerativeModel("gemini-1.5-flash")
-    except: return None
+    except Exception as e:
+        st.error(f"API 初始化失敗: {e}")
+        return None
 
 @st.cache_resource(ttl=3600)
 def init_google_sheet():
@@ -103,12 +104,22 @@ def init_google_sheet():
 model = init_ai()
 sheet_conn = init_google_sheet()
 
-# --- 核心：串流生成函式 (解決 Timeout 的關鍵) ---
-def stream_generate(prompt_text):
-    """使用串流模式生成內容，防止 Streamlit 斷線"""
-    if not model: return "AI 模型未連接"
+# --- 核心：萬用串流生成函式 (解決 Timeout 的關鍵) ---
+def stream_generate(prompt_text, container=None):
+    """
+    使用串流模式生成內容，防止 Streamlit 斷線
+    container: 指定要渲染的 UI 區塊，若無則建立新區塊
+    """
+    if not model: 
+        st.error("AI 模型未連接")
+        return ""
     
-    placeholder = st.empty() # 建立一個空位來放即時文字
+    # 如果有指定容器就用容器，沒有就建立一個空位
+    if container is None:
+        placeholder = st.empty()
+    else:
+        placeholder = container.empty()
+
     full_response = ""
     
     try:
@@ -127,8 +138,10 @@ def stream_generate(prompt_text):
         
         placeholder.markdown(full_response) # 最後顯示完整版
         return full_response
+
     except Exception as e:
-        st.error(f"連線中斷，請重試 (Error: {e})")
+        # 這裡會顯示真正的錯誤原因
+        st.error(f"❌ 發生錯誤 (Error Details): {e}")
         return ""
 
 # --- 資料寫入 ---
@@ -235,7 +248,12 @@ with tab3:
     with st.expander("⚖️ 法規校準座 (貼入最新條文以校準 AI 閱卷標準)"):
         ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上最新的 SOP 或法規條文...", key="sim_ref")
 
-    # 命題生成
+    # 顯示題目用的容器 (必須先佔位)
+    st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
+    # 這裡我們用一個變數來控制是否要顯示之前存的，還是新的串流
+    question_box = st.empty()
+
+    # --- 命題生成區 (修正點：這裡原本沒有用 Stream，現在改用 stream_generate) ---
     if gen_btn:
         target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
         q_prompt = f"""
@@ -247,27 +265,28 @@ with tab3:
         2. 情境 150 字內，需包含行政理論與實務任務。
         3. 直接輸出題目。
         """
-        # 這裡不一定需要串流，但為了保險起見我們用一般生成，或直接顯示
-        try:
-            with st.spinner("命題中..."):
-                st.session_state.current_q = model.generate_content(q_prompt).text
-                st.session_state.suggested_structure = None
-        except: st.error("命題連線逾時，請再按一次。")
+        # 使用串流生成，並顯示在 question_box
+        # 注意：我們把結果存回 session_state
+        with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
+             st.session_state.current_q = stream_generate(q_prompt)
+        st.session_state.suggested_structure = None # 清空舊的建議
+    else:
+        # 如果沒有按按鈕，就顯示舊的
+        if st.session_state.get("current_q"):
+             st.markdown(f'<div class="scroll-box">{st.session_state.current_q}</div>', unsafe_allow_html=True)
+        else:
+             st.markdown(f'<div class="scroll-box">請點擊生成試題...</div>', unsafe_allow_html=True)
 
-    st.markdown('<p class="tiny-label">📍 模擬試題視窗</p>', unsafe_allow_html=True)
-    st.markdown(f'<div class="scroll-box">{st.session_state.get("current_q", "請先點擊生成試題...")}</div>', unsafe_allow_html=True)
-
-    # 架構建議 (改用串流)
+    # 架構建議 (串流)
     if st.session_state.get("current_q") and st.button("💡 獲取黃金架構建議"):
         st.markdown("### 建議架構：")
         s_prompt = f"題目：{st.session_state.current_q}\n校準參考：{ref_text_sim}\n請提供三段式答題建議。"
-        # 這裡我們直接顯示串流結果，並選擇性存入 session_state
+        # 串流輸出並存檔
         res = stream_generate(s_prompt)
         st.session_state.suggested_structure = res
 
-    # 為了保持畫面整潔，若已有結果則顯示，若剛生成完上面會顯示，這裡可隱藏或保留
-    # 這裡選擇僅當非即時生成時顯示變數內容
-    if st.session_state.get("suggested_structure") and not st.session_state.get("init_done"): 
+    # 顯示已存在的架構建議
+    if st.session_state.get("suggested_structure") and not gen_btn: 
          st.markdown(f'<div class="guide-box-wide">{st.session_state.suggested_structure}</div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -294,7 +313,6 @@ with tab3:
                 """
                 
                 # --- 關鍵：評分使用串流 ---
-                # 這會讓您看著字打出來，絕對不會 timeout
                 final_feedback = stream_generate(eval_prompt)
                 st.session_state.feedback = final_feedback
                 
@@ -303,7 +321,7 @@ with tab3:
                 score_val = score_match.group(1) if score_match else "N/A"
                 log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_val, ans_input, final_feedback)
 
-    if st.session_state.get('feedback') and False: # 串流已顯示，此處暫時隱藏重複顯示
+    if st.session_state.get('feedback') and False: 
         st.markdown(f"<div class='guide-box-wide' style='border-left:4px solid #88c0d0;'>{st.session_state.feedback}</div>", unsafe_allow_html=True)
 
 # --- Tab 4 ---
