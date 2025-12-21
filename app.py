@@ -145,14 +145,24 @@ with tab1:
             with st.spinner("解析中..."):
                 st.markdown(model.generate_content(f"請以教育行政視角分析考點：\n{news_clip}").text)
 
-# --- Tab 2: 策略筆記 ---
+# --- Tab 2: 策略筆記 (✅ 已升級：黃金四段式結構) ---
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
     note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之韌性領導")
     if st.button("📖 生成行政戰略架構"):
         if model and note_t:
             with st.spinner("整理中..."):
-                st.markdown(model.generate_content(f"針對『{note_t}』，提供行動矩陣與KPI指標。").text)
+                # --- 升級後的 Prompt 指令 ---
+                prompt_t2 = f"""
+                請針對主題『{note_t}』，以教育行政專家的角度，撰寫一份結構完整的策略筆記。
+                
+                內容**必須嚴格包含**以下四個明確章節：
+                1. **前言** (破題與背景)
+                2. **定義與內涵** (學理基礎)
+                3. **行動矩陣與KPI指標** (請務必使用 Markdown 表格呈現具體策略與衡量指標)
+                4. **結語** (展望與總結)
+                """
+                st.markdown(model.generate_content(prompt_t2).text)
 
 # --- Tab 3: 實戰模擬 (版面與結構優化版) ---
 with tab3:
@@ -222,7 +232,7 @@ with tab3:
                         score_match = re.search(r"(\d+)/25", res)
                         log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_match.group(1) if score_match else "N/A", ans_input, res)
 
-    # --- 寬版架構建議區 (移出 col_q，改為獨立寬版) ---
+    # --- 寬版架構建議區 (獨立顯示) ---
     if st.session_state.get("suggested_structure"):
         st.markdown("---")
         st.markdown("### 💡 答題架構導航")
