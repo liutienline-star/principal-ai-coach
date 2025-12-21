@@ -1,4 +1,5 @@
-streamlit
 google-generativeai
+streamlit
+gspread
+oauth2client
 pandas
-st-gsheets-connection
