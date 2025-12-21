@@ -80,14 +80,16 @@ def get_records():
         return pd.DataFrame(sheet.get_all_records())
     except: return pd.DataFrame()
 
-# --- 🔐 密碼保護 ---
+# --- 🔐 密碼保護 (防崩潰強化版) ---
 if "password_correct" not in st.session_state:
     st.markdown('<h1 class="main-header">🛡️ 體育課程研究室</h1>', unsafe_allow_html=True)
     col_p2 = st.columns([1,2,1])[1]
     with col_p2:
         pwd = st.text_input("🔑 請輸入行政通關密碼：", type="password")
         if st.button("啟動系統"):
-            if pwd == st.secrets["app_password"]:
+            # 使用 .get 預防 Secrets 讀取錯誤
+            target_password = st.secrets.get("app_password")
+            if target_password and pwd == target_password:
                 st.session_state["password_correct"] = True
                 st.rerun()
             else: st.error("密碼驗證失敗。")
@@ -123,11 +125,12 @@ tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 策略筆記", "✍
 # --- Tab 1: 趨勢轉化 ---
 with tab1:
     st.markdown("### 📍 權威資訊導引")
-    c = st.columns(4)
+    c = st.columns(5) # 調整為 5 欄以容納新連結
     links = [("🏛️ 教育部新聞", "https://www.edu.tw/News.aspx?n=9E7AC85F1954DDA8&sms=169B8E91BB75571F"),
              ("🏫 桃園教育局", "https://www.tyc.edu.tw/"),
              ("📖 國家教育研究院", "https://www.naer.edu.tw/"),
-             ("🌟 臺灣教育評論", "http://www.ater.org.tw/commentmonth.html")]
+             ("🌟 臺灣教育評論", "http://www.ater.org.tw/commentmonth.html"),
+             ("✨ 親子天下", "https://www.parenting.com.tw/")]
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url)
     st.markdown("---")
