@@ -231,7 +231,7 @@ with tab3:
             if model:
                 with st.spinner("命題中..."):
                     target_topic = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-                    q_prompt = f"請參考「校長甄試筆試」風格命製一題 25 分的申論題。主題：『{target_topic}』。格式：專業語言描述校園困境(約150字)，具備治理層級厚度。嚴禁開場白。"
+                    q_prompt = f"請參考「校長甄試筆試」風格命製一題 25 分的申論題。主題：『{target_topic}』。格式：專業語言描述校園困境與提問(約150-200字)，具備治理層級厚度。嚴禁開場白。"
                     st.session_state.current_q = model.generate_content(q_prompt).text
                     st.session_state.suggested_structure = None
 
