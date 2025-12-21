@@ -35,7 +35,6 @@ st.markdown("""
         font-weight: 500; font-size: 1.8rem; margin-bottom: 1.5rem; letter-spacing: 0.05rem;
     }
 
-    /* 試題與建議框 */
     .scroll-box { 
         height: auto; min-height: 120px; overflow-y: auto; 
         border: 1px solid #3b4252; padding: 25px; 
@@ -45,7 +44,6 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
     }
 
-    /* 控制生成內容標題大小 */
     .stMarkdown h4 {
         font-size: 1.05rem !important;
         font-weight: 500 !important;
@@ -55,14 +53,6 @@ st.markdown("""
         padding-bottom: 5px;
     }
 
-    .guide-box-wide {
-        background: rgba(129, 161, 193, 0.05); 
-        border-left: 3px solid #5e81ac; 
-        padding: 25px; border-radius: 8px; margin-top: 15px; 
-        font-size: 1.0rem; color: #d8dee9; line-height: 1.9;
-    }
-
-    /* 作答區高度 650px */
     div[data-baseweb="textarea"] textarea {
         color: #eceff4 !important; font-size: 1.05rem !important; line-height: 1.8 !important; padding: 20px !important;
     }
@@ -169,7 +159,7 @@ with tab2:
             #### 一、前言
             描述該專題在當前教育脈動下的重要性。
             #### 二、提供學理
-            列出此專題適用的行政理論（如：韌性領導、權變理論、社會情緒學習等）。
+            列出此專題適用的行政理論。
             #### 三、行動矩陣 (Who, What, How)
             請使用 Markdown 表格呈現行動矩陣，欄位包含：對象(Who)、行動方案(What)、執行細節(How)。
             #### 四、結語
@@ -177,44 +167,36 @@ with tab2:
             stream_generate(p)
 
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>校準機制已啟動：</strong> 系統將依據您提供的法規文本進行精準命題。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>校準機制已啟動：</strong> 系統將依據您提供的自訂主題與法規文本進行精準命題。</div>""", unsafe_allow_html=True)
     
-    THEME_POOL = {
-        "🏆 領導願景與品牌經營": "桃園教育願景、品牌學校形塑、ESG永續經營、韌性領導。",
-        "📘 課程發展與課綱領航": "108課綱深綱、雙語教育、SDGs國際教育、跨域課程整合。",
-        "📖 教學領航與數位轉型": "GenAI教學倫理、數位公民素養、教師PLC運作、生生用平板。",
-        "⚖️ 法理實務與危機處理": "校事會議、霸凌防制新制、性平法實務、親師衝突溝通策略。",
-        "❤️ SEL 與學生輔導": "社會情緒學習計畫、學生心理健康韌性、正向管教、中輟預防。"
-    }
-
-    c1, c2, c3, c4 = st.columns([0.8, 1.5, 2, 0.8])
+    # 僅保留計時器、自訂主題與命題按鈕
+    c1, c2, c3 = st.columns([0.8, 3.5, 0.8])
     with c1:
         st.markdown('<p class="tiny-label">⏱️ 計時器</p>', unsafe_allow_html=True)
         if st.button("啟動模擬", use_container_width=True):
             st.session_state.start_time = time.time()
             st.success("計時開始")
     with c2:
-        st.markdown('<p class="tiny-label">🎯 命題向度</p>', unsafe_allow_html=True)
-        sel_choice = st.selectbox("向度", list(THEME_POOL.keys()), label_visibility="collapsed")
+        st.markdown('<p class="tiny-label">🖋️ 自訂模擬試題主題</p>', unsafe_allow_html=True)
+        manual_theme = st.text_input("自訂主題", placeholder="輸入您想練習的行政專題、政策或痛點 (例如：數位轉型下教師領導的挑戰)...", label_visibility="collapsed")
     with c3:
-        st.markdown('<p class="tiny-label">🖋️ 自訂主題</p>', unsafe_allow_html=True)
-        manual_theme = st.text_input("自訂主題", placeholder="輸入專題或行政痛點...", label_visibility="collapsed")
-    with c4:
         st.markdown('<p class="tiny-label">🚀 命題</p>', unsafe_allow_html=True)
         gen_btn = st.button("生成試題", use_container_width=True)
 
     with st.expander("⚖️ 法規校準座 (校準 AI 閱卷標準)"):
-        ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上最新的行政規範或指引...", key="sim_ref")
+        ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上最新的行政規範、局端公文或指引...", key="sim_ref")
 
     q_container = st.container()
     if gen_btn:
-        target = manual_theme if manual_theme.strip() else THEME_POOL[sel_choice]
-        p = f"""你現在是評鑑委員。請針對『{target}』參考法規『{ref_text_sim}』設計一則約 150-200 字的情境申論題。
-        要求：敘述必須一體化，將情境與核心提問融入單一段落，禁止條列格式。直接輸出題目。"""
-        with q_container:
-            with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
-                st.session_state.current_q = stream_generate(p)
-        st.session_state.suggested_structure = ""
+        if not manual_theme.strip():
+            st.warning("請先輸入自訂主題再生成試題。")
+        else:
+            p = f"""你現在是評鑑委員。請針對考生感興趣的主題『{manual_theme}』，並參考法規『{ref_text_sim}』設計一則約 150-200 字的情境申論題。
+            要求：敘述必須一體化，將情境與核心提問融入單一段落，禁止條列格式。直接輸出題目內容。"""
+            with q_container:
+                with st.markdown('<div class="scroll-box">', unsafe_allow_html=True):
+                    st.session_state.current_q = stream_generate(p)
+            st.session_state.suggested_structure = ""
     elif st.session_state.current_q:
         q_container.markdown(f'<div class="scroll-box">{st.session_state.current_q}</div>', unsafe_allow_html=True)
 
@@ -241,7 +223,7 @@ with tab3:
                 eval_p = f"題目：{st.session_state.current_q}\n法規校準：{ref_text_sim}\n考生擬答：{ans_input}\n請依據法規精準評分(滿分25)並給予改進建議。"
                 res = stream_generate(eval_p)
                 score_match = re.search(r"(\d+)/25", res)
-                log_to_google_sheets(manual_theme if manual_theme.strip() else sel_choice, score_match.group(1) if score_match else "N/A", ans_input, res)
+                log_to_google_sheets(manual_theme, score_match.group(1) if score_match else "N/A", ans_input, res)
 
 with tab4:
     st.markdown("### 📊 行政成長歷程分析")
