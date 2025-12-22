@@ -8,7 +8,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import re
 
 # --- 1. 系統層級與視覺設定 ---
-st.set_page_config(page_title="體育課程研究室 | 行政專業發展模擬", layout="wide", page_icon="🏫")
+st.set_page_config(page_title="專業學習社群研究室 | 行政專業發展模擬", layout="wide", page_icon="🏫")
 
 st.markdown("""
     <style>
@@ -148,11 +148,11 @@ if not st.session_state["password_correct"]:
     st.stop()
 
 # --- 4. 主分頁 ---
-st.markdown('<h1 class="main-header">🏫 體育課程研究室</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🏫 學習社群研究室</h1>', unsafe_allow_html=True)
 tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 戰略矩陣", "✍️ 實戰模擬", "📊 歷程紀錄"])
 
 with tab1:
-    st.markdown("### 📍 權威資訊導引")
+    st.markdown("### 📍 新聞資訊導引")
     links = [("🏛️ 教育部", "https://www.edu.tw/"), ("🏫 教育局", "https://www.tyc.edu.tw/"), ("📖 國教院", "https://www.naer.edu.tw/"), ("🌟 教育評論", "http://www.ater.org.tw/"), ("✨ 親子天下", "https://www.parenting.com.tw/")]
     c = st.columns(5)
     for i, (name, url) in enumerate(links):
