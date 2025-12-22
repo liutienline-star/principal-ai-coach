@@ -134,7 +134,7 @@ def log_to_google_sheets(topic, score, user_answer, feedback):
 
 # --- 3. 權限驗證 ---
 if not st.session_state["password_correct"]:
-    st.markdown('<h1 class="main-header">🛡️ 行政專業發展 | 系統登入</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🛡️ 專業學習社群研究室 | 系統登入</h1>', unsafe_allow_html=True)
     col_p = st.columns([1,2,1])[1]
     with col_p:
         pwd = st.text_input("🔑 輸入行政通關密碼：", type="password", key="login_field")
