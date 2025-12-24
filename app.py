@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 from datetime import datetime
+import pd as pd
 import pandas as pd
 import time
 import gspread
@@ -10,6 +11,7 @@ import re
 # --- 1. 系統層級與視覺設定 ---
 st.set_page_config(page_title="專業學習社群研究室 | 行政專業發展模擬", layout="wide", page_icon="🏫")
 
+# 嚴格保持 UI 1:1 佈局與配色
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500&display=swap');
@@ -45,7 +47,7 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px;
     }
 
-    /* 控制生成內容標題大小 */
+    /* 生成內容標題 */
     .stMarkdown h4 {
         font-size: 1.05rem !important;
         font-weight: 500 !important;
@@ -77,7 +79,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. 初始化 ---
+# --- 2. 初始化機制 ---
 if "init_done" not in st.session_state:
     st.session_state.update({
         "password_correct": False, 
@@ -92,10 +94,13 @@ def init_ai():
     try:
         api_key = st.secrets["gemini"]["api_key"]
         genai.configure(api_key=api_key)
-        # 移除工具選項，直接呼叫標準模型
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        return model
-    except: return None
+        # 採用校長提供之成功連線邏輯：動態偵測模型
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        target = next((m for m in available_models if "flash" in m), available_models[0])
+        return genai.GenerativeModel(target)
+    except Exception as e:
+        st.error(f"AI 初始化失敗: {str(e)}")
+        return None
 
 @st.cache_resource
 def init_google_sheet():
@@ -109,16 +114,17 @@ model = init_ai()
 sheet_conn = init_google_sheet()
 
 def stream_generate(prompt, container=None):
-    if not model: return "AI 初始化失敗，請檢查 API Key。"
+    if not model: return "AI 初始化失敗，請檢查 API Key 或模型設定。"
     placeholder = container.empty() if container else st.empty()
     full_response = ""
     try:
-        # 回歸穩定的串流生成模式
         response = model.generate_content(prompt, stream=True)
         for chunk in response:
-            if chunk.text:
-                full_response += chunk.text
-                placeholder.markdown(full_response + "▌")
+            try:
+                if chunk.text:
+                    full_response += chunk.text
+                    placeholder.markdown(full_response + "▌")
+            except: continue
         placeholder.markdown(full_response)
         return full_response
     except Exception as e:
@@ -143,54 +149,44 @@ if not st.session_state["password_correct"]:
                 st.success("驗證成功，正在進入...")
                 time.sleep(0.5)
                 st.rerun()
-            else: st.error("密碼錯誤。")
+            else: st.error("密碼錯誤，請確認輸入法是否為半型。")
     st.stop()
 
-# --- 4. 主分頁 ---
+# --- 4. 主分頁控制 ---
 st.markdown('<h1 class="main-header">🏫 學習社群研究室</h1>', unsafe_allow_html=True)
 tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 戰略矩陣", "✍️ 實戰模擬", "📊 歷程紀錄"])
 
 with tab1:
     st.markdown("### 📍 新聞資訊導引")
     links = [
-        ("🏛️ 教育部", "https://www.edu.tw/"), 
-        ("🏫 教育局", "https://www.tyc.edu.tw/"), 
-        ("📖 國教院", "https://www.naer.edu.tw/"), 
-        ("🌟 教育評論", "http://www.ater.org.tw/"), 
-        ("✨ 親子天下", "https://www.parenting.com.tw/"),
-        ("📚 研究月刊", "https://www.edubook.com.tw/new/ERICdata/202512.aspx")
+        ("🏛️ 教育部", "https://www.edu.tw/"), ("🏫 教育局", "https://www.tyc.edu.tw/"), 
+        ("📖 國教院", "https://www.naer.edu.tw/"), ("🌟 教育評論", "http://www.ater.org.tw/"), 
+        ("✨ 親子天下", "https://www.parenting.com.tw/"), ("📚 研究月刊", "https://www.edubook.com.tw/new/ERICdata/202512.aspx")
     ]
     c = st.columns(6)
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url, use_container_width=True)
     
     st.markdown("---")
-    news_clip = st.text_area("🔍 趨勢文本分析：", height=150, placeholder="貼上教育新聞，由 AI 分析行政考點與發展方向...", key="news_clip_tab1")
+    news_clip = st.text_area("🔍 趨勢文本分析：", height=150, placeholder="貼上教育新聞，分析行政考點...", key="news_clip_tab1")
     if st.button("🎯 執行深度考點轉化"):
         if news_clip: 
-            p = f"請以教育行政視角分析此文本之考點並給出可能的發展方向：\n{news_clip}"
-            stream_generate(p)
+            stream_generate(f"請以教育行政視角分析此文本之考點並給出可能的發展方向：\n{news_clip}")
 
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
-    note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之行政領導實務", key="nt_t2")
+    note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之韌性領導實務", key="nt_t2")
     
     with st.expander("⚖️ 法規/理論參考文本 (點擊展開/縮放)"):
         ref_text_note = st.text_area("輸入參考文本：", height=200, placeholder="貼上參考文本...", key="rt_t2", label_visibility="collapsed")
     
     if st.button("📖 生成行政戰略架構"):
         if note_t:
-            p = f"""主題：{note_t}
-            參考文本：{ref_text_note}
-            指令：請撰寫具備行政專業格局的戰略筆記，標題請使用 ####：
-            #### 一、前言 (專題重要性說明)
-            #### 二、提供學理 (適用行政理論)
-            #### 三、行動矩陣 (表格呈現：Who, What, How)
-            #### 四、結語 (願景與預期成效)"""
+            p = f"""主題：{note_t}\n參考文本：{ref_text_note}\n指令：請撰寫具備行政專業格局的戰略筆記，標題請使用 ####：\n#### 一、前言\n#### 二、提供學理\n#### 三、行動矩陣 (Who, What, How)\n#### 四、結語"""
             stream_generate(p)
 
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>模擬實戰機制：</strong> 系統將依據自訂主題生成具行政深度的申論試題。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>平衡命題機制啟動：</strong> 系統將依據自訂主題生成具行政深度的申論試題。</div>""", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([0.8, 3.5, 0.8])
     with c1:
@@ -200,7 +196,7 @@ with tab3:
             st.success("計時開始")
     with c2:
         st.markdown('<p class="tiny-label">🖋️ 自訂模擬試題主題</p>', unsafe_allow_html=True)
-        manual_theme = st.text_input("自訂主題", placeholder="例如：少子化下的特色招生策略、型領導應用...", label_visibility="collapsed", key="manual_theme_tab3")
+        manual_theme = st.text_input("自訂主題", placeholder="例如：校事會議處理、少子化下的特色招生...", label_visibility="collapsed", key="manual_theme_tab3")
     with c3:
         st.markdown('<p class="tiny-label">🚀 命題</p>', unsafe_allow_html=True)
         gen_btn = st.button("生成試題", use_container_width=True, key="gen_q_btn")
@@ -211,33 +207,21 @@ with tab3:
     q_container = st.container()
     if gen_btn:
         if not manual_theme.strip():
-            st.warning("請先輸入主題。")
+            st.warning("請先輸入主題再生成試題。")
         else:
-            p = f"""你現在是高階命題委員。請針對主題『{manual_theme}』設計一則約 180-220 字的情境申論題。
-            要求：
-            1. 情境寫實：設計具體的校務行政困境。
-            2. 核心提問：要求考生以「行政領導者」角色提出具體行動策略。
-            3. 禁止條列，敘述一體化，直接輸出題目內容。"""
+            p = f"""你現在是高階命題委員。請針對主題『{manual_theme}』設計一則約 180-220 字的情境申論題。要求：敘述一體化，禁止條列，直接輸出內容。"""
             with q_container:
                 st.markdown('<div class="scroll-box">', unsafe_allow_html=True)
                 st.session_state.current_q = stream_generate(p)
                 st.markdown('</div>', unsafe_allow_html=True)
-            st.session_state.suggested_structure = ""
     elif st.session_state.current_q:
         q_container.markdown(f'<div class="scroll-box">{st.session_state.current_q}</div>', unsafe_allow_html=True)
 
     if st.session_state.current_q:
         if st.button("💡 獲取黃金架構建議"):
             with st.expander("🏆 行政專業答題架構", expanded=True):
-                st.markdown('<div class="suggestion-content">', unsafe_allow_html=True)
-                s_p = f"""針對以下題目提供答題架構建議：
-                題目：{st.session_state.current_q}
-                請使用 #### 作為小標：
-                #### 📍 一、前言 (核心理念)
-                #### 🏗️ 二、中段策略 (Who/What/How)
-                #### 🌟 三、結語 (願景亮點)"""
-                st.session_state.suggested_structure = stream_generate(s_p)
-                st.markdown('</div>', unsafe_allow_html=True)
+                s_p = f"針對題目提供答題架構建議，使用 #### 作為小標：\n題目：{st.session_state.current_q}"
+                stream_generate(s_p)
 
     st.markdown('<p class="tiny-label">🖋️ 擬答作答區 (高度 650px)</p>', unsafe_allow_html=True)
     ans_input = st.text_area("作答內容", label_visibility="collapsed", key="ans_sim_v2", height=650)
