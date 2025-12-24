@@ -55,7 +55,7 @@ st.markdown("""
         padding-bottom: 5px;
     }
 
-    /* 作答區高度設定 */
+    /* 作答區高度設定 650px */
     div[data-baseweb="textarea"] textarea {
         color: #eceff4 !important; font-size: 1.05rem !important; line-height: 1.8 !important; padding: 20px !important;
     }
@@ -73,7 +73,6 @@ st.markdown("""
     .stButton>button:hover { background-color: #88c0d0; color: #1a1d24; border: 1px solid #88c0d0; }
     .tiny-label { font-size: 0.85rem; color: #81a1c1; margin-bottom: 5px; font-weight: 500; }
     
-    /* 建議內容容器 */
     .suggestion-content { line-height: 1.8; color: #e5e9f0; }
     </style>
     """, unsafe_allow_html=True)
@@ -93,10 +92,9 @@ def init_ai():
     try:
         api_key = st.secrets["gemini"]["api_key"]
         genai.configure(api_key=api_key)
-        # 修復：動態偵測模型解決 404
-        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        target = next((m for m in available_models if "flash" in m), available_models[0])
-        return genai.GenerativeModel(target)
+        # 移除工具選項，直接呼叫標準模型
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        return model
     except: return None
 
 @st.cache_resource
@@ -115,6 +113,7 @@ def stream_generate(prompt, container=None):
     placeholder = container.empty() if container else st.empty()
     full_response = ""
     try:
+        # 回歸穩定的串流生成模式
         response = model.generate_content(prompt, stream=True)
         for chunk in response:
             if chunk.text:
@@ -144,7 +143,7 @@ if not st.session_state["password_correct"]:
                 st.success("驗證成功，正在進入...")
                 time.sleep(0.5)
                 st.rerun()
-            else: st.error("密碼錯誤，請確認輸入法是否為半型。")
+            else: st.error("密碼錯誤。")
     st.stop()
 
 # --- 4. 主分頁 ---
@@ -153,41 +152,45 @@ tab1, tab2, tab3, tab4 = st.tabs(["📰 趨勢閱讀", "📚 戰略矩陣", "✍
 
 with tab1:
     st.markdown("### 📍 新聞資訊導引")
-    links = [("🏛️ 教育部", "https://www.edu.tw/"), ("🏫 教育局", "https://www.tyc.edu.tw/"), ("📖 國教院", "https://www.naer.edu.tw/"), ("🌟 教育評論", "http://www.ater.org.tw/"), ("✨ 親子天下", "https://www.parenting.com.tw/")]
-    c = st.columns(5)
+    links = [
+        ("🏛️ 教育部", "https://www.edu.tw/"), 
+        ("🏫 教育局", "https://www.tyc.edu.tw/"), 
+        ("📖 國教院", "https://www.naer.edu.tw/"), 
+        ("🌟 教育評論", "http://www.ater.org.tw/"), 
+        ("✨ 親子天下", "https://www.parenting.com.tw/"),
+        ("📚 研究月刊", "https://www.edubook.com.tw/new/ERICdata/202512.aspx")
+    ]
+    c = st.columns(6)
     for i, (name, url) in enumerate(links):
         with c[i]: st.link_button(name, url, use_container_width=True)
     
     st.markdown("---")
-    news_clip = st.text_area("🔍 趨勢文本分析：", height=150, placeholder="貼上教育新聞以轉化考點...", key="news_clip_tab1")
+    news_clip = st.text_area("🔍 趨勢文本分析：", height=150, placeholder="貼上教育新聞，由 AI 分析行政考點與發展方向...", key="news_clip_tab1")
     if st.button("🎯 執行深度考點轉化"):
         if news_clip: 
-            stream_generate(f"請以教育行政視角分析考點並給出可能的發展方向：\n{news_clip}")
+            p = f"請以教育行政視角分析此文本之考點並給出可能的發展方向：\n{news_clip}"
+            stream_generate(p)
 
 with tab2:
     st.markdown("### 📚 實務戰略行動矩陣")
-    note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之韌性領導", key="nt_t2")
+    note_t = st.text_input("專題名稱：", placeholder="例如：桃園教育願景下之行政領導實務", key="nt_t2")
     
     with st.expander("⚖️ 法規/理論參考文本 (點擊展開/縮放)"):
-        ref_text_note = st.text_area("輸入參考文本：", height=200, placeholder="貼上最新法規或核心理論確保矩陣正確性...", key="rt_t2", label_visibility="collapsed")
+        ref_text_note = st.text_area("輸入參考文本：", height=200, placeholder="貼上參考文本...", key="rt_t2", label_visibility="collapsed")
     
     if st.button("📖 生成行政戰略架構"):
         if note_t:
             p = f"""主題：{note_t}
             參考文本：{ref_text_note}
-            指令：請撰寫具備行政專業格局的戰略筆記，嚴格遵守以下格式，且標題請使用 #### (小標)：
-            #### 一、前言
-            描述該專題在當前教育脈動下的重要性。
-            #### 二、提供學理
-            列出此專題適用的行政理論（如：韌性領導、權變理論、社會情緒學習等）。
-            #### 三、行動矩陣 (Who, What, How)
-            請使用 Markdown 表格呈現行動矩陣，欄位包含：對象(Who)、行動方案(What)、執行細節(How)。
-            #### 四、結語
-            總結願景與預期成效。"""
+            指令：請撰寫具備行政專業格局的戰略筆記，標題請使用 ####：
+            #### 一、前言 (專題重要性說明)
+            #### 二、提供學理 (適用行政理論)
+            #### 三、行動矩陣 (表格呈現：Who, What, How)
+            #### 四、結語 (願景與預期成效)"""
             stream_generate(p)
 
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>平衡命題機制啟動：</strong> 系統將依據主題自動連結社會趨勢（少子化、AI、SDGs、OECD）並生成具深度的實戰試題。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>模擬實戰機制：</strong> 系統將依據自訂主題生成具行政深度的申論試題。</div>""", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([0.8, 3.5, 0.8])
     with c1:
@@ -197,28 +200,24 @@ with tab3:
             st.success("計時開始")
     with c2:
         st.markdown('<p class="tiny-label">🖋️ 自訂模擬試題主題</p>', unsafe_allow_html=True)
-        manual_theme = st.text_input("自訂主題", placeholder="輸入專題、政策或校園痛點 (如：校事會議處理、少子化下的特色招生)...", label_visibility="collapsed", key="manual_theme_tab3")
+        manual_theme = st.text_input("自訂主題", placeholder="例如：少子化下的特色招生策略、型領導應用...", label_visibility="collapsed", key="manual_theme_tab3")
     with c3:
         st.markdown('<p class="tiny-label">🚀 命題</p>', unsafe_allow_html=True)
         gen_btn = st.button("生成試題", use_container_width=True, key="gen_q_btn")
 
-    with st.expander("⚖️ 法規校準座 (校準 AI 閱卷標準)"):
-        ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上最新的行政規範、局端公文或指引...", key="sim_ref")
+    with st.expander("⚖️ 法規校準座"):
+        ref_text_sim = st.text_area("校準文本", height=150, placeholder="在此貼上參考規範或指引...", key="sim_ref")
 
     q_container = st.container()
     if gen_btn:
         if not manual_theme.strip():
-            st.warning("請先輸入主題再生成試題。")
+            st.warning("請先輸入主題。")
         else:
-            p = f"""你現在是高階教育行政評議委員。請針對主題『{manual_theme}』，並參考法規『{ref_text_sim}』設計一則約 180-220 字的情境申論題。
-
-            命題原則：
-            1. 情境寫實：設計一個具體的校園行政困境，避免邏輯破碎。
-            2. 趨勢融合：請根據主題自動關聯一項最相關的當前社會或國際趨勢融入背景。
-            3. 核心提問：最後提問必須清晰，要求考生從「行政領導者」角色提出具體行動策略。
-            4. 難度控管：確保題目具專業格局，但屬於在考試時間內可完整論述的範疇。
-
-            要求：敘述一體化，禁止條列，直接輸出題目內容。"""
+            p = f"""你現在是高階命題委員。請針對主題『{manual_theme}』設計一則約 180-220 字的情境申論題。
+            要求：
+            1. 情境寫實：設計具體的校務行政困境。
+            2. 核心提問：要求考生以「行政領導者」角色提出具體行動策略。
+            3. 禁止條列，敘述一體化，直接輸出題目內容。"""
             with q_container:
                 st.markdown('<div class="scroll-box">', unsafe_allow_html=True)
                 st.session_state.current_q = stream_generate(p)
@@ -231,10 +230,12 @@ with tab3:
         if st.button("💡 獲取黃金架構建議"):
             with st.expander("🏆 行政專業答題架構", expanded=True):
                 st.markdown('<div class="suggestion-content">', unsafe_allow_html=True)
-                s_p = f"""題目：{st.session_state.current_q}\n請提供極簡架構。嚴禁粗體標題集。使用 #### 作為小標：
-                #### 📍 一、前言：核心理念 (破題關鍵字)
-                #### 🏗️ 二、中段：行動策略 (Who/What/How)
-                #### 🌟 三、結語：願景亮點"""
+                s_p = f"""針對以下題目提供答題架構建議：
+                題目：{st.session_state.current_q}
+                請使用 #### 作為小標：
+                #### 📍 一、前言 (核心理念)
+                #### 🏗️ 二、中段策略 (Who/What/How)
+                #### 🌟 三、結語 (願景亮點)"""
                 st.session_state.suggested_structure = stream_generate(s_p)
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -247,7 +248,7 @@ with tab3:
         if st.button("⚖️ 提交閱卷評分", use_container_width=True, key="submit_eval"):
             if ans_input:
                 st.markdown("### ⚖️ 專業評閱意見")
-                eval_p = f"題目：{st.session_state.current_q}\n法規校準：{ref_text_sim}\n考生擬答：{ans_input}\n請依據法規精準評分(滿分25)並給予改進建議。"
+                eval_p = f"題目：{st.session_state.current_q}\n考生擬答：{ans_input}\n請精準評分(25)並給予具體改進建議。"
                 res = stream_generate(eval_p)
                 score_match = re.search(r"(\d+)/25", res)
                 log_to_google_sheets(manual_theme, score_match.group(1) if score_match else "N/A", ans_input, res)
@@ -259,16 +260,12 @@ with tab4:
             raw_data = sheet_conn.get_all_records()
             if raw_data:
                 df = pd.DataFrame(raw_data)
-                # 重要：修復 Tab 4 數據格式崩潰
                 df['score_num'] = pd.to_numeric(df.iloc[:, 2], errors='coerce').fillna(0)
-                
                 c1, c2, c3 = st.columns(3)
                 with c1: st.metric("總練習次數", len(df))
                 with c2: st.metric("平均得分", f"{df['score_num'].mean():.1f}")
                 with c3: st.metric("最高得分", f"{df['score_num'].max():.0f}")
-                
-                st.markdown('<p class="tiny-label">📈 得分趨勢圖</p>', unsafe_allow_html=True)
                 st.line_chart(df['score_num'])
                 st.dataframe(df.astype(str), use_container_width=True)
             else: st.info("尚無練習紀錄。")
-        except: st.error("資料讀取失敗，請確認資料表權限與 GCP 金鑰設定。")
+        except: st.error("數據讀取異常。")
