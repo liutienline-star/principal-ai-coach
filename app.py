@@ -187,7 +187,7 @@ with tab2:
             stream_generate(p)
 
 with tab3:
-    st.markdown("""<div class="alert-box">🎯 <strong>平衡命題機制啟動：</strong> 系統將依據主題自動連結社會趨勢（少子化、AI、SDGs、OECD）並生成具深度的實戰試題。</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="alert-box">🎯 <strong>平衡命題機制啟動：</strong> 系統將依據主題自動連結社會或國際教育趨勢並生成具深度的實戰試題。</div>""", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([0.8, 3.5, 0.8])
     with c1:
